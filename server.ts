@@ -607,7 +607,7 @@ function calculateNutritionFallback(query: string) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // Middleware to parse large JSON payloads (base64 images)
   app.use(express.json({ limit: '50mb' }));
@@ -2748,8 +2748,8 @@ ${recentMeals.length > 0 ? JSON.stringify(recentMeals, null, 2) : 'ยังไ�
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`GooKal Server running on port ${PORT} (dual-stack IPv4/IPv6)`);
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`GooKal Server running on port ${PORT} (0.0.0.0 dual-stack IPv4/IPv6)`);
   });
 }
 

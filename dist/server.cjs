@@ -530,7 +530,7 @@ function calculateNutritionFallback(query) {
 }
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = 3e3;
+  const PORT = process.env.PORT || 3e3;
   app.use(import_express.default.json({ limit: "50mb" }));
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
@@ -2441,8 +2441,8 @@ ${recentMeals.length > 0 ? JSON.stringify(recentMeals, null, 2) : "\u0E22\u0E31\
       res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
-  app.listen(PORT, () => {
-    console.log(`GooKal Server running on port ${PORT} (dual-stack IPv4/IPv6)`);
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`GooKal Server running on port ${PORT} (0.0.0.0 dual-stack IPv4/IPv6)`);
   });
 }
 startServer().catch((err) => {
