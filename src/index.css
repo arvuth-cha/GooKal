@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================================================
+   1. Dark Mode / OLED Charcoal Theme
+   ========================================================= */
+.dark {
+  color-scheme: dark;
+  background-color: #0b0f17 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark body {
+  background-color: #0b0f17 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .bg-neutral-100 {
+  background-color: #0b0f17 !important;
+}
+
+.dark .bg-white {
+  background-color: #161f2e !important;
+  color: #f8fafc !important;
+  border-color: #263345 !important;
+}
+
+.dark .bg-neutral-50,
+.dark .bg-neutral-50\/50 {
+  background-color: #101726 !important;
+}
+
+.dark .text-neutral-900,
+.dark .text-neutral-800 {
+  color: #f8fafc !important;
+}
+
+.dark .text-neutral-700,
+.dark .text-neutral-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-neutral-500,
+.dark .text-neutral-400 {
+  color: #94a3b8 !important;
+}
+
+.dark .border-neutral-100,
+.dark .border-neutral-200,
+.dark .border-neutral-200\/80,
+.dark .border-neutral-200\/90,
+.dark .border-neutral-300 {
+  border-color: #263345 !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1a2436 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark .ring-white\/50 {
+  --tw-ring-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* =========================================================
+   2. Warm Sepia Eye-Care Theme
+   ========================================================= */
+.theme-sepia {
+  color-scheme: light;
+  background-color: #fbf7ee !important;
+  color: #2e261d !important;
+}
+
+.theme-sepia body {
+  background-color: #fbf7ee !important;
+  color: #2e261d !important;
+}
+
+.theme-sepia .bg-neutral-100 {
+  background-color: #f4ecdc !important;
+}
+
+.theme-sepia .bg-white {
+  background-color: #fcf9f2 !important;
+  border-color: #e4d7be !important;
+  color: #2e261d !important;
+}
+
+.theme-sepia .bg-neutral-50,
+.theme-sepia .bg-neutral-50\/50 {
+  background-color: #f6eedf !important;
+}
+
+.theme-sepia .text-neutral-900,
+.theme-sepia .text-neutral-800 {
+  color: #2e261d !important;
+}
+
+.theme-sepia .text-neutral-700,
+.theme-sepia .text-neutral-600 {
+  color: #524436 !important;
+}
+
+.theme-sepia .text-neutral-500,
+.theme-sepia .text-neutral-400 {
+  color: #7d6b58 !important;
+}
+
+.theme-sepia .border-neutral-100,
+.theme-sepia .border-neutral-200,
+.theme-sepia .border-neutral-300 {
+  border-color: #e4d7be !important;
+}
+
+.theme-sepia input,
+.theme-sepia select,
+.theme-sepia textarea {
+  background-color: #ffffff !important;
+  color: #2e261d !important;
+  border-color: #d6c5a5 !important;
+}
+
+/* =========================================================
+   3. High Contrast Mode (Dark & Light)
+   ========================================================= */
+.high-contrast {
+  --contrast-border: #000000;
+}
+
+.high-contrast * {
+  border-color: #000000 !important;
+}
+
+.high-contrast.dark * {
+  border-color: #ffffff !important;
+}
+
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast a {
+  outline: 2px solid currentColor !important;
+  font-weight: 700 !important;
+}
+
+.high-contrast-dark {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast-dark body,
+.high-contrast-dark .bg-neutral-100,
+.high-contrast-dark .bg-neutral-50,
+.high-contrast-dark .bg-white {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+.high-contrast-light {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.high-contrast-light body,
+.high-contrast-light .bg-neutral-100,
+.high-contrast-light .bg-neutral-50,
+.high-contrast-light .bg-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* =========================================================
+   4. Dyslexia / High-Legibility Typography Mode
+   ========================================================= */
+.font-dyslexia,
+.font-dyslexia * {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  letter-spacing: 0.04em !important;
+  word-spacing: 0.08em !important;
+}
+
+/* =========================================================
+   5. Reduced Motion Mode
+   ========================================================= */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* =========================================================
+   6. Spacious Line Spacing
+   ========================================================= */
+.line-spacing-spacious,
+.line-spacing-spacious p,
+.line-spacing-spacious span,
+.line-spacing-spacious li,
+.line-spacing-spacious div {
+  line-height: 1.8 !important;
+}

@@ -1,0 +1,17 @@
+{
+  "short_name": "GooKal",
+  "name": "GooKal - บันทึกและวิเคราะห์โภชนาการ",
+  "description": "แอปพลิเคชันบันทึกอาหาร คำนวณแคลอรี่ และวิเคราะห์โภชนาการด้วย AI รองรับการดูข้อมูลย้อนหลังและแดชบอร์ดแบบออฟไลน์",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
