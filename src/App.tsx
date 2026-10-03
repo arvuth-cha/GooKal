@@ -196,9 +196,10 @@ export default function App() {
     }
   });
 
-  const persistHistorySafely = (newHistory: HistoryItem[], newlyDeletedIds: string[] = []) => {
-    const historyKey = getScopedStorageKey('kalguru_history_v2', currentGoogleUser?.id);
-    const deletedSet = getDeletedMealIds(currentGoogleUser?.id);
+  const persistHistorySafely = (newHistory: HistoryItem[], newlyDeletedIds: string[] = [], targetUserId?: string) => {
+    const effectiveUserId = targetUserId !== undefined ? targetUserId : currentGoogleUser?.id;
+    const historyKey = getScopedStorageKey('kalguru_history_v2', effectiveUserId);
+    const deletedSet = getDeletedMealIds(effectiveUserId);
     newlyDeletedIds.forEach(id => deletedSet.add(id));
 
     // Ensure no deleted items are kept
@@ -214,7 +215,7 @@ export default function App() {
         return item;
       });
       localStorage.setItem(historyKey, JSON.stringify(sanitized));
-      if (!currentGoogleUser) {
+      if (!effectiveUserId) {
         localStorage.setItem('kalguru_history_v2', JSON.stringify(sanitized));
       }
       saved = true;
@@ -227,7 +228,7 @@ export default function App() {
       try {
         const noImages = filteredHistory.map(item => ({ ...item, image: '' }));
         localStorage.setItem(historyKey, JSON.stringify(noImages));
-        if (!currentGoogleUser) {
+        if (!effectiveUserId) {
           localStorage.setItem('kalguru_history_v2', JSON.stringify(noImages));
         }
         saved = true;
@@ -237,13 +238,14 @@ export default function App() {
     }
 
     // 3. Auto-sync to Cloud Server in background if logged in
-    if (currentGoogleUser) {
+    const syncId = effectiveUserId;
+    if (syncId) {
       fetch('/api/user/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentGoogleUser.id,
-          email: currentGoogleUser.email,
+          userId: syncId,
+          email: currentGoogleUser?.email || '',
           history: filteredHistory,
           profile: userProfile,
           deletedIds: Array.from(deletedSet),
@@ -334,13 +336,23 @@ export default function App() {
       const historyKey = getScopedStorageKey('kalguru_history_v2', userToSync.id);
       const profileKey = getScopedStorageKey('kalguru_profile', userToSync.id);
 
-      const res = await fetch(`/api/user/sync?userId=${encodeURIComponent(userToSync.id)}`);
+      // Read local history directly from localStorage
+      let localHistory: HistoryItem[] = [];
+      try {
+        const rawLocal = localStorage.getItem(historyKey) || localStorage.getItem('kalguru_history_v2');
+        if (rawLocal) {
+          localHistory = JSON.parse(rawLocal);
+        }
+      } catch {}
+
+      const syncUrl = `/api/user/sync?userId=${encodeURIComponent(userToSync.id)}&email=${encodeURIComponent(userToSync.email || '')}`;
+      const res = await fetch(syncUrl);
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);
       }
       const result = await res.json();
 
-      let finalHistory = [...history];
+      let finalHistory: HistoryItem[] = [];
       let finalProfile = { ...userProfile };
 
       if (result?.success && result?.data) {
@@ -353,23 +365,36 @@ export default function App() {
         const serverHistory: HistoryItem[] = Array.isArray(result.data.history) 
           ? result.data.history.filter((h: any) => h && h.id && !combinedDelSet.has(h.id))
           : [];
-        const cleanHistory = history.filter(h => h && h.id && !combinedDelSet.has(h.id));
-        const localIdSet = new Set(cleanHistory.map(h => h.id));
-        const newFromServer = serverHistory.filter(h => !localIdSet.has(h.id));
-        finalHistory = [...newFromServer, ...cleanHistory];
+        const cleanLocal = localHistory.filter(h => h && h.id && !combinedDelSet.has(h.id));
+
+        // Union merge: All server meals + local meals
+        const historyMap = new Map<string, HistoryItem>();
+        serverHistory.forEach(item => historyMap.set(item.id, item));
+        cleanLocal.forEach(item => {
+          if (!historyMap.has(item.id)) {
+            historyMap.set(item.id, item);
+          }
+        });
+
+        finalHistory = Array.from(historyMap.values()).sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0));
         setHistory(finalHistory);
-        persistHistorySafely(finalHistory);
+        persistHistorySafely(finalHistory, [], userToSync.id);
 
         if (result.data.profile && Object.keys(result.data.profile).length > 0) {
           finalProfile = { ...userProfile, ...result.data.profile };
           setUserProfile(finalProfile);
           localStorage.setItem(profileKey, JSON.stringify(finalProfile));
         }
+      } else {
+        finalHistory = localHistory;
+        setHistory(finalHistory);
+        persistHistorySafely(finalHistory, [], userToSync.id);
       }
 
       const delKey = getScopedStorageKey('kalguru_deleted_meals_v1', userToSync.id);
       const allDeleted = JSON.parse(localStorage.getItem(delKey) || '[]');
 
+      // Push merged data back to server
       const postRes = await fetch('/api/user/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -410,6 +435,7 @@ export default function App() {
   };
 
   const handleGoogleLoginSuccess = (user: GoogleUser) => {
+    saveUserSession(user);
     setCurrentGoogleUser(user);
     setShowGoogleLoginModal(false);
     if (user.name) {
@@ -529,7 +555,8 @@ export default function App() {
     // Automatic Server Cloud Sync in background
     if (currentGoogleUser) {
       setCloudSyncStatus('syncing');
-      fetch(`/api/user/sync?userId=${encodeURIComponent(currentGoogleUser.id)}`)
+      const syncUrl = `/api/user/sync?userId=${encodeURIComponent(currentGoogleUser.id)}&email=${encodeURIComponent(currentGoogleUser.email || '')}`;
+      fetch(syncUrl)
         .then(res => res.json())
         .then(result => {
           if (result && result.success && result.data) {
@@ -557,17 +584,18 @@ export default function App() {
               : [];
             const cleanLocal = currentLocal.filter(h => h && h.id && !combinedDelSet.has(h.id));
 
-            const localIdSet = new Set(cleanLocal.map(h => h.id));
-            const newFromServer = serverHistory.filter(h => !localIdSet.has(h.id));
+            // Union merge: All server meals + local meals
+            const historyMap = new Map<string, HistoryItem>();
+            serverHistory.forEach(item => historyMap.set(item.id, item));
+            cleanLocal.forEach(item => {
+              if (!historyMap.has(item.id)) {
+                historyMap.set(item.id, item);
+              }
+            });
 
-            const serverIdSet = new Set(serverHistory.map(h => h.id));
-            const newFromLocal = cleanLocal.filter(h => !serverIdSet.has(h.id));
-
-            if (newFromServer.length > 0 || cleanLocal.length !== currentLocal.length) {
-              const merged = [...newFromServer, ...cleanLocal];
-              setHistory(merged);
-              persistHistorySafely(merged);
-            }
+            const merged = Array.from(historyMap.values()).sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0));
+            setHistory(merged);
+            persistHistorySafely(merged, [], currentGoogleUser.id);
 
             if (serverData.profile && Object.keys(serverData.profile).length > 0) {
               setUserProfile(prev => {
@@ -577,44 +605,31 @@ export default function App() {
               });
             }
 
-            if (newFromLocal.length > 0) {
-              const fullMerged = [...newFromServer, ...cleanLocal];
-              fetch('/api/user/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: currentGoogleUser.id,
-                  email: currentGoogleUser.email,
-                  history: fullMerged,
-                  profile: serverData.profile || (savedProfile ? JSON.parse(savedProfile) : {}),
-                  deletedIds: Array.from(combinedDelSet),
-                  lastUpdated: Date.now()
-                })
-              }).catch(() => {});
-            }
-
             setCloudSyncStatus('synced');
             setLastCloudSyncTime(new Date());
           } else if (result && result.success && result.data === null) {
             if (savedHistory || savedProfile) {
-              const delKey = getScopedStorageKey('kalguru_deleted_meals_v1', currentGoogleUser.id);
-              let localDel: string[] = [];
-              try {
-                localDel = JSON.parse(localStorage.getItem(delKey) || '[]');
-              } catch (e) {}
+              const localHistoryParsed = savedHistory ? JSON.parse(savedHistory) : [];
+              if (localHistoryParsed.length > 0) {
+                const delKey = getScopedStorageKey('kalguru_deleted_meals_v1', currentGoogleUser.id);
+                let localDel: string[] = [];
+                try {
+                  localDel = JSON.parse(localStorage.getItem(delKey) || '[]');
+                } catch (e) {}
 
-              fetch('/api/user/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: currentGoogleUser.id,
-                  email: currentGoogleUser.email,
-                  history: savedHistory ? JSON.parse(savedHistory) : [],
-                  profile: savedProfile ? JSON.parse(savedProfile) : {},
-                  deletedIds: localDel,
-                  lastUpdated: Date.now()
-                })
-              }).catch(() => {});
+                fetch('/api/user/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: currentGoogleUser.id,
+                    email: currentGoogleUser.email,
+                    history: localHistoryParsed,
+                    profile: savedProfile ? JSON.parse(savedProfile) : {},
+                    deletedIds: localDel,
+                    lastUpdated: Date.now()
+                  })
+                }).catch(() => {});
+              }
             }
             setCloudSyncStatus('synced');
             setLastCloudSyncTime(new Date());

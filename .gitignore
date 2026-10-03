@@ -6,8 +6,7 @@ coverage/
 .DS_Store
 *.log
 .env*
-!.env.example
-data/users/
+data/users/*.backup.json
 *.txt
 dummy*.cjs
 fix_*.cjs

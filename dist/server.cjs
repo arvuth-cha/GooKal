@@ -545,23 +545,76 @@ async function startServer() {
   }
   app.get("/api/user/sync", (req, res) => {
     try {
-      const userId = req.query.userId;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
+      const userId = (req.query.userId || "").trim();
+      const email = (req.query.email || "").trim().toLowerCase();
+      if (!userId && !email) {
+        return res.status(400).json({ error: "userId or email is required" });
       }
-      const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const userFilePath = import_path.default.join(USERS_DATA_DIR, `${safeId}.json`);
-      if (import_fs.default.existsSync(userFilePath)) {
-        const fileContent = import_fs.default.readFileSync(userFilePath, "utf-8");
-        const userData = JSON.parse(fileContent);
-        const delSet = new Set(Array.isArray(userData.deletedIds) ? userData.deletedIds : []);
-        if (Array.isArray(userData.history)) {
-          userData.history = userData.history.filter((h) => h && h.id && !delSet.has(h.id));
+      let foundUserData = null;
+      let matchedFilePath = null;
+      if (userId) {
+        const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const userFilePath = import_path.default.join(USERS_DATA_DIR, `${safeId}.json`);
+        if (import_fs.default.existsSync(userFilePath)) {
+          try {
+            foundUserData = JSON.parse(import_fs.default.readFileSync(userFilePath, "utf-8"));
+            matchedFilePath = userFilePath;
+          } catch (e) {
+            console.warn("[Sync] Could not parse user file:", userFilePath, e);
+          }
         }
-        return res.json({ success: true, data: userData });
-      } else {
-        return res.json({ success: true, data: null });
       }
+      if ((!foundUserData || !Array.isArray(foundUserData.history) || foundUserData.history.length === 0) && email) {
+        try {
+          if (import_fs.default.existsSync(USERS_DATA_DIR)) {
+            const files = import_fs.default.readdirSync(USERS_DATA_DIR).filter((f) => f.endsWith(".json") && !f.includes(".backup."));
+            for (const file of files) {
+              try {
+                const fp = import_path.default.join(USERS_DATA_DIR, file);
+                const fileContent = import_fs.default.readFileSync(fp, "utf-8");
+                const parsed = JSON.parse(fileContent);
+                if (parsed && parsed.email && parsed.email.trim().toLowerCase() === email) {
+                  foundUserData = parsed;
+                  matchedFilePath = fp;
+                  break;
+                }
+              } catch {
+              }
+            }
+          }
+        } catch (scanErr) {
+          console.warn("[Sync] Error scanning for email:", scanErr);
+        }
+      }
+      if (!foundUserData && email) {
+        const emailHash = "google_" + Math.abs(email.split("").reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0));
+        const hashPath = import_path.default.join(USERS_DATA_DIR, `${emailHash}.json`);
+        if (import_fs.default.existsSync(hashPath)) {
+          try {
+            foundUserData = JSON.parse(import_fs.default.readFileSync(hashPath, "utf-8"));
+            matchedFilePath = hashPath;
+          } catch {
+          }
+        }
+      }
+      if (foundUserData) {
+        const delSet = new Set(Array.isArray(foundUserData.deletedIds) ? foundUserData.deletedIds : []);
+        if (Array.isArray(foundUserData.history)) {
+          foundUserData.history = foundUserData.history.filter((h) => h && h.id && !delSet.has(h.id));
+        }
+        if (userId) {
+          const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const aliasPath = import_path.default.join(USERS_DATA_DIR, `${safeId}.json`);
+          if (matchedFilePath && aliasPath !== matchedFilePath && !import_fs.default.existsSync(aliasPath)) {
+            try {
+              import_fs.default.writeFileSync(aliasPath, JSON.stringify({ ...foundUserData, userId }, null, 2), "utf-8");
+            } catch {
+            }
+          }
+        }
+        return res.json({ success: true, data: foundUserData });
+      }
+      return res.json({ success: true, data: null });
     } catch (err) {
       console.error("Error fetching user sync data:", err);
       return res.status(500).json({ error: "Internal server error", details: err.message });
@@ -570,47 +623,75 @@ async function startServer() {
   app.post("/api/user/sync", (req, res) => {
     try {
       const { userId, email, history, profile, lastUpdated, deletedIds } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
+      const cleanEmail = (email || "").trim().toLowerCase();
+      if (!userId && !cleanEmail) {
+        return res.status(400).json({ error: "userId or email is required" });
       }
-      const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const safeId = (userId || "user_" + Math.abs(cleanEmail.split("").reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0))).replace(/[^a-zA-Z0-9_-]/g, "_");
       const userFilePath = import_path.default.join(USERS_DATA_DIR, `${safeId}.json`);
       let incomingDeleted = Array.isArray(deletedIds) ? deletedIds : [];
       let combinedDeleted = new Set(incomingDeleted);
-      let mergedData = {
-        userId,
-        email: email || "",
-        lastUpdated: lastUpdated || Date.now(),
-        history: Array.isArray(history) ? history : [],
-        profile: profile || {},
-        deletedIds: []
-      };
+      let existingData = null;
+      let existingFilePath = userFilePath;
       if (import_fs.default.existsSync(userFilePath)) {
         try {
-          const existing = JSON.parse(import_fs.default.readFileSync(userFilePath, "utf-8"));
-          if (Array.isArray(existing.deletedIds)) {
-            existing.deletedIds.forEach((id) => combinedDeleted.add(id));
-          }
-          if (Array.isArray(history)) {
-            mergedData.history = history.filter((h) => h && h.id && !combinedDeleted.has(h.id));
-          } else if (Array.isArray(existing.history)) {
-            mergedData.history = existing.history.filter((h) => h && h.id && !combinedDeleted.has(h.id));
-          }
-          mergedData.profile = { ...existing.profile || {}, ...profile || {} };
-          mergedData.lastUpdated = Math.max(existing.lastUpdated || 0, mergedData.lastUpdated);
-        } catch (e) {
-          console.warn("Could not read existing file for merge, overwriting:", e);
-          if (Array.isArray(history)) {
-            mergedData.history = history.filter((h) => h && h.id && !combinedDeleted.has(h.id));
-          }
+          existingData = JSON.parse(import_fs.default.readFileSync(userFilePath, "utf-8"));
+        } catch {
         }
-      } else {
-        if (Array.isArray(history)) {
-          mergedData.history = history.filter((h) => h && h.id && !combinedDeleted.has(h.id));
+      } else if (cleanEmail && import_fs.default.existsSync(USERS_DATA_DIR)) {
+        const files = import_fs.default.readdirSync(USERS_DATA_DIR).filter((f) => f.endsWith(".json") && !f.includes(".backup."));
+        for (const file of files) {
+          try {
+            const fp = import_path.default.join(USERS_DATA_DIR, file);
+            const content = import_fs.default.readFileSync(fp, "utf-8");
+            const d = JSON.parse(content);
+            if (d && d.email && d.email.trim().toLowerCase() === cleanEmail) {
+              existingData = d;
+              existingFilePath = fp;
+              break;
+            }
+          } catch {
+          }
         }
       }
-      mergedData.deletedIds = Array.from(combinedDeleted);
+      if (existingData && Array.isArray(existingData.deletedIds)) {
+        existingData.deletedIds.forEach((id) => combinedDeleted.add(id));
+      }
+      const historyMap = /* @__PURE__ */ new Map();
+      if (existingData && Array.isArray(existingData.history)) {
+        for (const item of existingData.history) {
+          if (item && item.id && !combinedDeleted.has(item.id)) {
+            historyMap.set(item.id, item);
+          }
+        }
+      }
+      if (Array.isArray(history)) {
+        for (const item of history) {
+          if (item && item.id && !combinedDeleted.has(item.id)) {
+            historyMap.set(item.id, item);
+          }
+        }
+      }
+      const mergedHistory = Array.from(historyMap.values()).sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0));
+      let mergedProfile = { ...existingData?.profile || {} };
+      if (profile && typeof profile === "object" && Object.keys(profile).length > 0) {
+        mergedProfile = { ...mergedProfile, ...profile };
+      }
+      const mergedData = {
+        userId: userId || existingData?.userId || safeId,
+        email: cleanEmail || existingData?.email || "",
+        lastUpdated: Math.max(lastUpdated || Date.now(), existingData?.lastUpdated || 0),
+        history: mergedHistory,
+        profile: mergedProfile,
+        deletedIds: Array.from(combinedDeleted)
+      };
       import_fs.default.writeFileSync(userFilePath, JSON.stringify(mergedData, null, 2), "utf-8");
+      if (existingFilePath !== userFilePath && import_fs.default.existsSync(existingFilePath)) {
+        try {
+          import_fs.default.writeFileSync(existingFilePath, JSON.stringify(mergedData, null, 2), "utf-8");
+        } catch {
+        }
+      }
       return res.json({ success: true, data: mergedData });
     } catch (err) {
       console.error("Error saving user sync data:", err);

@@ -627,29 +627,89 @@ async function startServer() {
     console.error('Failed to create users data directory:', err);
   }
 
-  // GET /api/user/sync?userId=...
+  // GET /api/user/sync?userId=...&email=...
   app.get('/api/user/sync', (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
+      const userId = (req.query.userId as string || '').trim();
+      const email = (req.query.email as string || '').trim().toLowerCase();
+      if (!userId && !email) {
+        return res.status(400).json({ error: 'userId or email is required' });
       }
-      const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const userFilePath = path.join(USERS_DATA_DIR, `${safeId}.json`);
-      if (fs.existsSync(userFilePath)) {
-        const fileContent = fs.readFileSync(userFilePath, 'utf-8');
-        const userData = JSON.parse(fileContent);
 
+      let foundUserData: any = null;
+      let matchedFilePath: string | null = null;
+
+      // 1. Direct lookup by userId file
+      if (userId) {
+        const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const userFilePath = path.join(USERS_DATA_DIR, `${safeId}.json`);
+        if (fs.existsSync(userFilePath)) {
+          try {
+            foundUserData = JSON.parse(fs.readFileSync(userFilePath, 'utf-8'));
+            matchedFilePath = userFilePath;
+          } catch (e) {
+            console.warn('[Sync] Could not parse user file:', userFilePath, e);
+          }
+        }
+      }
+
+      // 2. If not found or found has no history, search by email across all user files
+      if ((!foundUserData || !Array.isArray(foundUserData.history) || foundUserData.history.length === 0) && email) {
+        try {
+          if (fs.existsSync(USERS_DATA_DIR)) {
+            const files = fs.readdirSync(USERS_DATA_DIR).filter(f => f.endsWith('.json') && !f.includes('.backup.'));
+            for (const file of files) {
+              try {
+                const fp = path.join(USERS_DATA_DIR, file);
+                const fileContent = fs.readFileSync(fp, 'utf-8');
+                const parsed = JSON.parse(fileContent);
+                if (parsed && parsed.email && parsed.email.trim().toLowerCase() === email) {
+                  foundUserData = parsed;
+                  matchedFilePath = fp;
+                  break;
+                }
+              } catch {}
+            }
+          }
+        } catch (scanErr) {
+          console.warn('[Sync] Error scanning for email:', scanErr);
+        }
+      }
+
+      // 3. Fallback: Check email hash file name
+      if (!foundUserData && email) {
+        const emailHash = 'google_' + Math.abs(email.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0));
+        const hashPath = path.join(USERS_DATA_DIR, `${emailHash}.json`);
+        if (fs.existsSync(hashPath)) {
+          try {
+            foundUserData = JSON.parse(fs.readFileSync(hashPath, 'utf-8'));
+            matchedFilePath = hashPath;
+          } catch {}
+        }
+      }
+
+      if (foundUserData) {
         // Filter out any items in deletedIds tombstones
-        const delSet = new Set(Array.isArray(userData.deletedIds) ? userData.deletedIds : []);
-        if (Array.isArray(userData.history)) {
-          userData.history = userData.history.filter((h: any) => h && h.id && !delSet.has(h.id));
+        const delSet = new Set(Array.isArray(foundUserData.deletedIds) ? foundUserData.deletedIds : []);
+        if (Array.isArray(foundUserData.history)) {
+          foundUserData.history = foundUserData.history.filter((h: any) => h && h.id && !delSet.has(h.id));
         }
 
-        return res.json({ success: true, data: userData });
-      } else {
-        return res.json({ success: true, data: null });
+        // If queried by a different userId (e.g. Google GIS sub vs hash), write an alias file for instant next access
+        if (userId) {
+          const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
+          const aliasPath = path.join(USERS_DATA_DIR, `${safeId}.json`);
+          if (matchedFilePath && aliasPath !== matchedFilePath && !fs.existsSync(aliasPath)) {
+            try {
+              fs.writeFileSync(aliasPath, JSON.stringify({ ...foundUserData, userId }, null, 2), 'utf-8');
+            } catch {}
+          }
+        }
+
+        return res.json({ success: true, data: foundUserData });
       }
+
+      return res.json({ success: true, data: null });
     } catch (err: any) {
       console.error('Error fetching user sync data:', err);
       return res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -660,57 +720,92 @@ async function startServer() {
   app.post('/api/user/sync', (req, res) => {
     try {
       const { userId, email, history, profile, lastUpdated, deletedIds } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (!userId && !cleanEmail) {
+        return res.status(400).json({ error: 'userId or email is required' });
       }
-      const safeId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      const safeId = (userId || 'user_' + Math.abs(cleanEmail.split('').reduce((acc: number, char: string) => (acc << 5) - acc + char.charCodeAt(0), 0))).replace(/[^a-zA-Z0-9_-]/g, '_');
       const userFilePath = path.join(USERS_DATA_DIR, `${safeId}.json`);
 
       let incomingDeleted: string[] = Array.isArray(deletedIds) ? deletedIds : [];
       let combinedDeleted = new Set<string>(incomingDeleted);
 
-      let mergedData: any = {
-        userId,
-        email: email || '',
-        lastUpdated: lastUpdated || Date.now(),
-        history: Array.isArray(history) ? history : [],
-        profile: profile || {},
-        deletedIds: []
-      };
+      // Locate existing data either in userFilePath or via email in any existing JSON file
+      let existingData: any = null;
+      let existingFilePath: string = userFilePath;
 
       if (fs.existsSync(userFilePath)) {
         try {
-          const existing = JSON.parse(fs.readFileSync(userFilePath, 'utf-8'));
-
-          // Merge deletedIds tombstones
-          if (Array.isArray(existing.deletedIds)) {
-            existing.deletedIds.forEach((id: string) => combinedDeleted.add(id));
-          }
-
-          // Use incoming history if provided (client is authoritative for its state)
-          if (Array.isArray(history)) {
-            mergedData.history = history.filter((h: any) => h && h.id && !combinedDeleted.has(h.id));
-          } else if (Array.isArray(existing.history)) {
-            mergedData.history = existing.history.filter((h: any) => h && h.id && !combinedDeleted.has(h.id));
-          }
-
-          mergedData.profile = { ...(existing.profile || {}), ...(profile || {}) };
-          mergedData.lastUpdated = Math.max(existing.lastUpdated || 0, mergedData.lastUpdated);
-        } catch (e) {
-          console.warn('Could not read existing file for merge, overwriting:', e);
-          if (Array.isArray(history)) {
-            mergedData.history = history.filter((h: any) => h && h.id && !combinedDeleted.has(h.id));
-          }
-        }
-      } else {
-        if (Array.isArray(history)) {
-          mergedData.history = history.filter((h: any) => h && h.id && !combinedDeleted.has(h.id));
+          existingData = JSON.parse(fs.readFileSync(userFilePath, 'utf-8'));
+        } catch {}
+      } else if (cleanEmail && fs.existsSync(USERS_DATA_DIR)) {
+        const files = fs.readdirSync(USERS_DATA_DIR).filter(f => f.endsWith('.json') && !f.includes('.backup.'));
+        for (const file of files) {
+          try {
+            const fp = path.join(USERS_DATA_DIR, file);
+            const content = fs.readFileSync(fp, 'utf-8');
+            const d = JSON.parse(content);
+            if (d && d.email && d.email.trim().toLowerCase() === cleanEmail) {
+              existingData = d;
+              existingFilePath = fp;
+              break;
+            }
+          } catch {}
         }
       }
 
-      mergedData.deletedIds = Array.from(combinedDeleted);
+      if (existingData && Array.isArray(existingData.deletedIds)) {
+        existingData.deletedIds.forEach((id: string) => combinedDeleted.add(id));
+      }
+
+      // Merge history non-destructively using a Map (Union of existing + incoming, minus deleted)
+      const historyMap = new Map<string, any>();
+
+      // 1. Add existing history first
+      if (existingData && Array.isArray(existingData.history)) {
+        for (const item of existingData.history) {
+          if (item && item.id && !combinedDeleted.has(item.id)) {
+            historyMap.set(item.id, item);
+          }
+        }
+      }
+
+      // 2. Add incoming history (overwriting or adding new meals)
+      if (Array.isArray(history)) {
+        for (const item of history) {
+          if (item && item.id && !combinedDeleted.has(item.id)) {
+            historyMap.set(item.id, item);
+          }
+        }
+      }
+
+      const mergedHistory = Array.from(historyMap.values()).sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0));
+
+      // Merge profile: Keep existing profile fields if incoming fields are missing/empty
+      let mergedProfile = { ...(existingData?.profile || {}) };
+      if (profile && typeof profile === 'object' && Object.keys(profile).length > 0) {
+        mergedProfile = { ...mergedProfile, ...profile };
+      }
+
+      const mergedData: any = {
+        userId: userId || existingData?.userId || safeId,
+        email: cleanEmail || existingData?.email || '',
+        lastUpdated: Math.max(lastUpdated || Date.now(), existingData?.lastUpdated || 0),
+        history: mergedHistory,
+        profile: mergedProfile,
+        deletedIds: Array.from(combinedDeleted)
+      };
 
       fs.writeFileSync(userFilePath, JSON.stringify(mergedData, null, 2), 'utf-8');
+
+      // If matched an existing file with a different name (e.g. email-based filename), keep it updated as well
+      if (existingFilePath !== userFilePath && fs.existsSync(existingFilePath)) {
+        try {
+          fs.writeFileSync(existingFilePath, JSON.stringify(mergedData, null, 2), 'utf-8');
+        } catch {}
+      }
+
       return res.json({ success: true, data: mergedData });
     } catch (err: any) {
       console.error('Error saving user sync data:', err);
