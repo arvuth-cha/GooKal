@@ -71,6 +71,7 @@ export interface CalorieTargetGoalModalProps {
   currentTdee?: number;
   onSave?: (targetCalories: number, customMacros?: { carbs: number; protein: number; fat: number; sugar?: number; sodium?: number }) => void;
   onSaveGoal?: (targetCalories: number, customMacros?: { carbs: number; protein: number; fat: number; sugar?: number; sodium?: number }) => void;
+  onSaveProfile?: (profile: any) => void;
   onToast?: (msg: string) => void;
 }
 
@@ -89,6 +90,7 @@ export const CalorieTargetGoalModal: React.FC<CalorieTargetGoalModalProps> = ({
   currentTdee: propCurrentTdee,
   onSave,
   onSaveGoal,
+  onSaveProfile,
   onToast
 }) => {
   // Profile Stats State (can be tweaked live in the calculator)
@@ -363,22 +365,24 @@ export const CalorieTargetGoalModal: React.FC<CalorieTargetGoalModalProps> = ({
       onSaveGoal(calculatedDailyCalories, finalMacros);
     }
 
-    // Direct localStorage sync as safety guarantee
+    const updated = {
+      ...(userProfile || {}),
+      weight: Number(weight) || userProfile?.weight || 59,
+      targetWeight: Number(targetWeight) || userProfile?.targetWeight || 59,
+      height: Number(height) || userProfile?.height || 167,
+      age: Number(age) || userProfile?.age || 59,
+      gender: gender,
+      activityLevel: Number(activityLevel) || 1.375,
+      customTdee: calculatedTdee,
+      targetCalories: calculatedDailyCalories,
+      customMacros: finalMacros
+    };
+
+    if (onSaveProfile) {
+      onSaveProfile(updated);
+    }
+
     try {
-      const saved = localStorage.getItem('kalguru_profile');
-      const base = saved ? JSON.parse(saved) : {};
-      const updated = {
-        ...base,
-        weight: Number(weight) || base.weight || 60,
-        targetWeight: Number(targetWeight) || base.targetWeight,
-        height: Number(height) || base.height || 165,
-        age: Number(age) || base.age || 25,
-        gender: gender,
-        activityLevel: Number(activityLevel) || 1.2,
-        customTdee: calculatedTdee,
-        targetCalories: calculatedDailyCalories,
-        customMacros: finalMacros
-      };
       localStorage.setItem('kalguru_profile', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to sync to profile storage:', e);

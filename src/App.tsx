@@ -305,12 +305,25 @@ export default function App() {
     showToast(`🍳 บันทึกเมนู "${mealData.name}" (${mealData.calories} kcal) ลงในมื้ออาหารเรียบร้อย!`);
     setActiveTab('history');
   };
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    weight: 60,
-    height: 165,
-    age: 25,
-    gender: 'female',
-    activityLevel: 1.2
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try {
+      const curr = getCurrentUser();
+      const scopedKey = getScopedStorageKey('kalguru_profile', curr?.id);
+      const saved = localStorage.getItem(scopedKey) || localStorage.getItem('kalguru_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.weight) return parsed;
+      }
+    } catch {}
+    return {
+      weight: 59,
+      height: 167,
+      age: 59,
+      gender: 'male',
+      activityLevel: 1.375,
+      targetWeight: 59,
+      name: 'arvuth'
+    };
   });
   const [dailyGoal, setDailyGoal] = useState<number>(1861);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -383,7 +396,10 @@ export default function App() {
         if (result.data.profile && Object.keys(result.data.profile).length > 0) {
           finalProfile = { ...userProfile, ...result.data.profile };
           setUserProfile(finalProfile);
-          localStorage.setItem(profileKey, JSON.stringify(finalProfile));
+          try {
+            localStorage.setItem(profileKey, JSON.stringify(finalProfile));
+            localStorage.setItem('kalguru_profile', JSON.stringify(finalProfile));
+          } catch {}
         }
       } else {
         finalHistory = localHistory;
@@ -600,7 +616,10 @@ export default function App() {
             if (serverData.profile && Object.keys(serverData.profile).length > 0) {
               setUserProfile(prev => {
                 const mergedProfile = { ...prev, ...serverData.profile };
-                localStorage.setItem(profileKey, JSON.stringify(mergedProfile));
+                try {
+                  localStorage.setItem(profileKey, JSON.stringify(mergedProfile));
+                  localStorage.setItem('kalguru_profile', JSON.stringify(mergedProfile));
+                } catch {}
                 return mergedProfile;
               });
             }
@@ -664,12 +683,16 @@ export default function App() {
     setDailyGoal(targetToSet);
   }, [userProfile]);
 
-  const saveProfile = (newProfile: UserProfile) => {
+  const saveProfile = (newProfile: UserProfile, notifyUser = false) => {
     setUserProfile(newProfile);
     const profileKey = getScopedStorageKey('kalguru_profile', currentGoogleUser?.id);
-    localStorage.setItem(profileKey, JSON.stringify(newProfile));
-    if (!currentGoogleUser) {
+    try {
+      localStorage.setItem(profileKey, JSON.stringify(newProfile));
       localStorage.setItem('kalguru_profile', JSON.stringify(newProfile));
+    } catch (e) {}
+
+    if (notifyUser) {
+      showToast('💾 บันทึกและซิงค์ข้อมูลสรีระเรียบร้อย!');
     }
 
     // Auto-sync to Cloud in background if logged in
@@ -3650,38 +3673,66 @@ export default function App() {
                   <label className="block text-xs font-bold text-neutral-500 mb-1">เพศ</label>
                   <div className="flex gap-2">
                     <button type="button" 
-                      onClick={() => saveProfile({...userProfile, gender: 'male'})}
+                      onClick={() => saveProfile({...userProfile, gender: 'male'}, true)}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${userProfile.gender === 'male' ? 'bg-orange-100 text-orange-600 border border-orange-200 shadow-2xs' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-transparent'}`}
                     >ชาย</button>
                     <button type="button" 
-                      onClick={() => saveProfile({...userProfile, gender: 'female'})}
+                      onClick={() => saveProfile({...userProfile, gender: 'female'}, true)}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${userProfile.gender === 'female' ? 'bg-orange-100 text-orange-600 border border-orange-200 shadow-2xs' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-transparent'}`}
                     >หญิง</button>
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1">อายุ (ปี)</label>
-                  <input type="number" value={userProfile.age} onChange={(e) => saveProfile({...userProfile, age: Number(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
+                  <input type="number" value={userProfile.age || 59} 
+                    onChange={(e) => {
+                      const updated = { ...userProfile, age: Number(e.target.value) };
+                      setUserProfile(updated);
+                      saveProfile(updated);
+                    }} 
+                    onBlur={() => saveProfile(userProfile, true)}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-neutral-500 mb-1">น้ำหนักปัจจุบัน (กก.)</label>
-                    <input type="number" value={userProfile.weight} onChange={(e) => saveProfile({...userProfile, weight: Number(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
+                    <input type="number" value={userProfile.weight || 59} 
+                      onChange={(e) => {
+                        const updated = { ...userProfile, weight: Number(e.target.value) };
+                        setUserProfile(updated);
+                        saveProfile(updated);
+                      }} 
+                      onBlur={() => saveProfile(userProfile, true)}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-orange-600 mb-1">น้ำหนักเป้าหมาย (กก.)</label>
-                    <input type="number" value={userProfile.targetWeight || 55} onChange={(e) => saveProfile({...userProfile, targetWeight: Number(e.target.value)})} className="w-full bg-orange-50/50 border border-orange-200 rounded-xl px-4 py-2.5 text-sm font-bold text-orange-700 focus:outline-none focus:border-orange-500" />
+                    <input type="number" value={userProfile.targetWeight || 59} 
+                      onChange={(e) => {
+                        const updated = { ...userProfile, targetWeight: Number(e.target.value) };
+                        setUserProfile(updated);
+                        saveProfile(updated);
+                      }} 
+                      onBlur={() => saveProfile(userProfile, true)}
+                      className="w-full bg-orange-50/50 border border-orange-200 rounded-xl px-4 py-2.5 text-sm font-bold text-orange-700 focus:outline-none focus:border-orange-500" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1">ส่วนสูง (ซม.)</label>
-                  <input type="number" value={userProfile.height} onChange={(e) => saveProfile({...userProfile, height: Number(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
+                  <input type="number" value={userProfile.height || 167} 
+                    onChange={(e) => {
+                      const updated = { ...userProfile, height: Number(e.target.value) };
+                      setUserProfile(updated);
+                      saveProfile(updated);
+                    }} 
+                    onBlur={() => saveProfile(userProfile, true)}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1">ระดับกิจกรรมในชีวิตประจำวัน</label>
                   <select 
-                    value={userProfile.activityLevel} 
-                    onChange={(e) => saveProfile({...userProfile, activityLevel: Number(e.target.value)})}
+                    value={userProfile.activityLevel || 1.375} 
+                    onChange={(e) => saveProfile({...userProfile, activityLevel: Number(e.target.value)}, true)}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500"
                   >
                     <option value={1.2}>ไม่ออกกำลังกายเลย / นั่งโต๊ะทำงานเป็นหลัก (1.2)</option>
@@ -5639,7 +5690,7 @@ export default function App() {
           onClose={() => setShowCalorieGoalsModal(false)}
           userProfile={userProfile}
           currentWeight={userProfile.weight}
-          targetWeight={userProfile.targetWeight || 55}
+          targetWeight={userProfile.targetWeight || 59}
           height={userProfile.height}
           age={userProfile.age}
           gender={userProfile.gender}
@@ -5649,6 +5700,7 @@ export default function App() {
           currentTdee={tdee}
           onSave={handleSaveCalorieGoals}
           onSaveGoal={handleSaveCalorieGoals}
+          onSaveProfile={(p) => saveProfile(p, true)}
           onToast={showToast}
         />
 
