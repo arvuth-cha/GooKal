@@ -44,6 +44,8 @@ import {
   getWaterTotalMlForDate,
   getWaterGoal,
   addWaterLog,
+  subscribeWaterUpdates,
+  clearWaterLogsForDate,
 } from '../../utils/waterService';
 import { formatDateDMY, formatDateDMYShort, formatFullThaiDate } from '../../utils/dateUtils';
 

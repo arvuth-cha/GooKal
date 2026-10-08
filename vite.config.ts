@@ -16,7 +16,7 @@ export default defineConfig(() => {
       include: ['react', 'react-dom', 'motion/react', 'lucide-react', 'recharts'],
     },
     server: {
-      allowedHosts: true,
+      allowedHosts: true as any,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: {
         ignored: ['**/data/**', '**/dist/**']

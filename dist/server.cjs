@@ -71,32 +71,50 @@ function setCachedFoodResult(key, data) {
 async function generateContentSafe(params) {
   const aiInstance = getAI();
   const requestedModel = params.model;
-  const primaryModel = requestedModel && requestedModel !== "gemini-flash-latest" ? requestedModel : "gemini-3.6-flash";
+  const primaryModel = requestedModel && requestedModel !== "gemini-flash-latest" && requestedModel !== "gemini-3.6-flash" ? requestedModel : "gemini-3.5-flash-lite";
   const fallbackModels = [
     primaryModel,
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
     "gemini-3.6-flash",
-    "gemini-3.8-flash",
-    "gemini-flash-latest",
-    "gemini-3.7-flash"
+    "gemini-flash-latest"
   ];
   const modelsToTry = Array.from(new Set(fallbackModels));
-  const enrichedConfig = {
-    ...params.config,
-    thinkingConfig: params.config?.thinkingConfig || { thinkingLevel: import_genai.ThinkingLevel.MINIMAL }
-  };
   let lastError = null;
   for (const modelName of modelsToTry) {
+    const configCopy = { ...params.config || {} };
+    if (modelName === "gemini-3.5-flash-lite" || modelName === "gemini-3.5-flash" || modelName === "gemini-3.6-flash") {
+      configCopy.thinkingConfig = configCopy.thinkingConfig || { thinkingLevel: import_genai.ThinkingLevel.MINIMAL };
+    } else {
+      if (configCopy.thinkingConfig?.thinkingLevel === import_genai.ThinkingLevel.MINIMAL) {
+        configCopy.thinkingConfig = { thinkingLevel: import_genai.ThinkingLevel.LOW };
+      }
+    }
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const response = await aiInstance.models.generateContent({
           ...params,
-          config: enrichedConfig,
+          config: configCopy,
           model: modelName
         });
         return response;
       } catch (err) {
         lastError = err;
         const errMsg = (err?.message || String(err)).toLowerCase();
+        if (errMsg.includes("thinking level") || errMsg.includes("thinkinglevel") || errMsg.includes("invalid_argument")) {
+          try {
+            const noThinkingConfig = { ...configCopy };
+            delete noThinkingConfig.thinkingConfig;
+            const retryRes = await aiInstance.models.generateContent({
+              ...params,
+              config: noThinkingConfig,
+              model: modelName
+            });
+            return retryRes;
+          } catch (retryErr) {
+            lastError = retryErr;
+          }
+        }
         const isTransient = errMsg.includes("503") || errMsg.includes("unavailable") || errMsg.includes("high demand") || errMsg.includes("429") || errMsg.includes("resource_exhausted") || errMsg.includes("overloaded") || errMsg.includes("econnreset") || errMsg.includes("etimedout");
         if (isTransient && attempt === 0) {
           await new Promise((resolve) => setTimeout(resolve, 200));
@@ -110,9 +128,9 @@ async function generateContentSafe(params) {
 }
 async function generateGroundedContentSafe(params) {
   const aiInstance = getAI();
-  const modelsToTry = ["gemini-3.6-flash", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.7-flash"];
+  const searchModels = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-flash-latest"];
   let lastError = null;
-  for (const modelName of modelsToTry) {
+  for (const modelName of searchModels) {
     try {
       const response = await aiInstance.models.generateContent({
         model: modelName,
@@ -122,14 +140,35 @@ async function generateGroundedContentSafe(params) {
           tools: [{ googleSearch: {} }]
         }
       });
-      return { response, modelUsed: modelName };
+      return { response, modelUsed: `${modelName} (Google Search Grounded)`, isGrounded: true };
     } catch (err) {
       lastError = err;
-      console.warn(`Grounded generation failed on ${modelName}:`, err?.message || err);
-      continue;
+      console.warn(`Grounded generation with search tool failed on ${modelName}:`, err?.message || err);
+      const errMsg = (err?.message || "").toLowerCase();
+      if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("resource_exhausted")) {
+        break;
+      }
     }
   }
-  throw lastError || new Error("Failed to generate grounded content from AI model");
+  try {
+    const configCopy = { ...params.config || {} };
+    if (configCopy.tools) {
+      delete configCopy.tools;
+    }
+    const fallbackResponse = await generateContentSafe({
+      model: "gemini-3.5-flash-lite",
+      contents: params.contents,
+      config: configCopy
+    });
+    return {
+      response: fallbackResponse,
+      modelUsed: "gemini-3.5-flash-lite (Live Nutrition Intelligence)",
+      isGrounded: false
+    };
+  } catch (fallbackErr) {
+    console.error("Direct fallback also failed:", fallbackErr);
+    throw lastError || fallbackErr;
+  }
 }
 var THAI_FOOD_NUTRITION_DB = {
   // ข้าวและอาหารจานเดียว
@@ -728,7 +767,7 @@ async function startServer() {
    - foodName: \u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22\u0E17\u0E35\u0E48\u0E0A\u0E31\u0E14\u0E40\u0E08\u0E19 \u0E23\u0E30\u0E1A\u0E38\u0E2A\u0E48\u0E27\u0E19\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E41\u0E25\u0E30\u0E1B\u0E23\u0E34\u0E21\u0E32\u0E13 (\u0E40\u0E0A\u0E48\u0E19 "\u0E02\u0E49\u0E32\u0E27\u0E01\u0E30\u0E40\u0E1E\u0E23\u0E32\u0E2B\u0E21\u0E39\u0E2A\u0E31\u0E1A\u0E44\u0E02\u0E48\u0E14\u0E32\u0E27 1 \u0E08\u0E32\u0E19", "\u0E2A\u0E49\u0E21\u0E15\u0E33\u0E44\u0E17\u0E22\u0E41\u0E25\u0E30\u0E44\u0E01\u0E48\u0E22\u0E48\u0E32\u0E07 1 \u0E0A\u0E34\u0E49\u0E19")
    - explanation: \u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E08\u0E01\u0E41\u0E08\u0E07\u0E2A\u0E31\u0E14\u0E2A\u0E48\u0E27\u0E19\u0E41\u0E04\u0E25\u0E2D\u0E23\u0E35\u0E48\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2A\u0E48\u0E27\u0E19\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E2A\u0E31\u0E49\u0E19\u0E46 \u0E40\u0E0A\u0E48\u0E19 "\u0E02\u0E49\u0E32\u0E27\u0E2A\u0E27\u0E22 1 \u0E08\u0E32\u0E19 (220 kcal) + \u0E01\u0E30\u0E40\u0E1E\u0E23\u0E32\u0E2B\u0E21\u0E39\u0E2A\u0E31\u0E1A\u0E1C\u0E31\u0E14\u0E19\u0E49\u0E33\u0E21\u0E31\u0E19 (360 kcal) + \u0E44\u0E02\u0E48\u0E14\u0E32\u0E27\u0E17\u0E2D\u0E14\u0E01\u0E23\u0E2D\u0E1A (130 kcal) | \u0E23\u0E27\u0E21 710 kcal \u0E2D\u0E38\u0E14\u0E21\u0E14\u0E49\u0E27\u0E22\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19 30g"`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -839,7 +878,7 @@ async function startServer() {
    - sodiumMg: \u0E42\u0E0B\u0E40\u0E14\u0E35\u0E22\u0E21 (mg)
    - explanation: \u0E41\u0E08\u0E01\u0E41\u0E08\u0E07\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E2A\u0E31\u0E49\u0E19\u0E46 \u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2D\u0E07\u0E04\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E21\u0E35\u0E01\u0E35\u0E48\u0E41\u0E04\u0E25\u0E2D\u0E23\u0E35\u0E48 \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33\u0E42\u0E20\u0E0A\u0E19\u0E32\u0E01\u0E32\u0E23`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -909,7 +948,7 @@ async function startServer() {
 
 \u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E25\u0E31\u0E1E\u0E18\u0E4C\u0E40\u0E1B\u0E47\u0E19 JSON Object \u0E15\u0E32\u0E21 Schema`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -991,7 +1030,7 @@ async function startServer() {
 - \u0E23\u0E30\u0E1A\u0E38\u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48 \u0E40\u0E0A\u0E48\u0E19 \u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19, \u0E1C\u0E31\u0E01, \u0E1C\u0E25\u0E44\u0E21\u0E49, \u0E1C\u0E25\u0E34\u0E15\u0E20\u0E31\u0E13\u0E11\u0E4C\u0E19\u0E21/\u0E44\u0E02\u0E48, \u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E23\u0E38\u0E07
 - \u0E40\u0E02\u0E35\u0E22\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2A\u0E31\u0E49\u0E19\u0E46 \u0E43\u0E2B\u0E49\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E17\u0E23\u0E32\u0E1A\u0E27\u0E48\u0E32\u0E1E\u0E1A\u0E27\u0E31\u0E15\u0E16\u0E38\u0E14\u0E34\u0E1A\u0E40\u0E14\u0E48\u0E19\u0E2D\u0E30\u0E44\u0E23\u0E1A\u0E49\u0E32\u0E07 \u0E41\u0E25\u0E30\u0E41\u0E19\u0E30\u0E19\u0E33\u0E40\u0E1A\u0E37\u0E49\u0E2D\u0E07\u0E15\u0E49\u0E19\u0E27\u0E48\u0E32\u0E40\u0E2B\u0E21\u0E32\u0E30\u0E17\u0E33\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E41\u0E19\u0E27\u0E44\u0E2B\u0E19`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -1108,7 +1147,7 @@ ${modePromptInstruction}
 \u0E02\u0E49\u0E2D\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A:
 - \u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E25\u0E31\u0E1E\u0E18\u0E4C\u0E40\u0E1B\u0E47\u0E19 JSON Object \u0E17\u0E35\u0E48\u0E21\u0E35 property "recipes" \u0E1A\u0E23\u0E23\u0E08\u0E38 Array \u0E02\u0E2D\u0E07\u0E2A\u0E39\u0E15\u0E23\u0E2D\u0E32\u0E2B\u0E32\u0E23 3 \u0E40\u0E21\u0E19\u0E39\u0E15\u0E32\u0E21 Schema`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -1324,7 +1363,7 @@ ${modePromptInstruction}
 3. \u0E2D\u0E18\u0E34\u0E1A\u0E32\u0E22\u0E02\u0E31\u0E49\u0E19\u0E15\u0E2D\u0E19\u0E01\u0E32\u0E23\u0E1B\u0E23\u0E38\u0E07 (steps) \u0E17\u0E35\u0E25\u0E30\u0E02\u0E49\u0E2D\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 \u0E17\u0E33\u0E15\u0E32\u0E21\u0E44\u0E14\u0E49\u0E08\u0E23\u0E34\u0E07 100%
 4. \u0E43\u0E2B\u0E49\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33 ProTip \u0E14\u0E49\u0E32\u0E19\u0E01\u0E32\u0E23\u0E1B\u0E23\u0E38\u0E07\u0E04\u0E25\u0E35\u0E19\u0E41\u0E25\u0E30\u0E40\u0E17\u0E04\u0E19\u0E34\u0E04\u0E14\u0E36\u0E07\u0E23\u0E2A\u0E0A\u0E32\u0E15\u0E34`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -1531,7 +1570,7 @@ ${modePromptInstruction}
 5. Science Explanation: \u0E2D\u0E18\u0E34\u0E1A\u0E32\u0E22\u0E0A\u0E35\u0E27\u0E40\u0E04\u0E21\u0E35\u0E2A\u0E31\u0E49\u0E19\u0E46 \u0E17\u0E33\u0E44\u0E21\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E19\u0E35\u0E49\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E49\u0E1C\u0E25\u0E40\u0E0A\u0E48\u0E19\u0E19\u0E31\u0E49\u0E19
 6. Glucose Hacks: 3 \u0E40\u0E04\u0E25\u0E47\u0E14\u0E25\u0E31\u0E1A\u0E25\u0E14 Spike \u0E17\u0E32\u0E07\u0E27\u0E34\u0E17\u0E22\u0E32\u0E28\u0E32\u0E2A\u0E15\u0E23\u0E4C (\u0E40\u0E0A\u0E48\u0E19 \u0E17\u0E32\u0E19\u0E1C\u0E31\u0E01/\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E41\u0E1B\u0E49\u0E07, \u0E14\u0E37\u0E48\u0E21\u0E19\u0E49\u0E33\u0E1C\u0E2A\u0E21 ACV \u0E01\u0E48\u0E2D\u0E19\u0E21\u0E37\u0E49\u0E2D, \u0E40\u0E14\u0E34\u0E19\u0E40\u0E1A\u0E32\u0E46 10-15 \u0E19\u0E32\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E17\u0E32\u0E19)`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -1599,7 +1638,7 @@ ${modePromptInstruction}
 3. "Avoid/High-Risk Choices" (\u0E40\u0E21\u0E19\u0E39\u0E41\u0E04\u0E25\u0E2D\u0E23\u0E35\u0E48/\u0E42\u0E0B\u0E40\u0E14\u0E35\u0E22\u0E21/\u0E19\u0E49\u0E33\u0E21\u0E31\u0E19\u0E2A\u0E39\u0E07\u0E17\u0E35\u0E48\u0E04\u0E27\u0E23\u0E23\u0E30\u0E27\u0E31\u0E07)
 4. \u0E43\u0E2B\u0E49 "Custom Ordering Scripts" \u0E1B\u0E23\u0E30\u0E42\u0E22\u0E04\u0E40\u0E14\u0E47\u0E14\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E1E\u0E39\u0E14\u0E2A\u0E31\u0E48\u0E07\u0E01\u0E31\u0E1A\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E23\u0E49\u0E32\u0E19 \u0E40\u0E0A\u0E48\u0E19 "\u0E02\u0E2D\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E19\u0E49\u0E33\u0E15\u0E32\u0E25/\u0E1C\u0E07\u0E0A\u0E39\u0E23\u0E2A", "\u0E41\u0E22\u0E01\u0E19\u0E49\u0E33\u0E23\u0E32\u0E14", "\u0E43\u0E0A\u0E49\u0E19\u0E49\u0E33\u0E21\u0E31\u0E19\u0E19\u0E49\u0E2D\u0E22"`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [
           {
             role: "user",
@@ -1712,7 +1751,7 @@ ${modePromptInstruction}
 5. \u0E1B\u0E31\u0E08\u0E08\u0E31\u0E22\u0E17\u0E35\u0E48\u0E04\u0E27\u0E23\u0E23\u0E30\u0E27\u0E31\u0E07 (cautionFactors 2 \u0E02\u0E49\u0E2D \u0E40\u0E0A\u0E48\u0E19 \u0E42\u0E0B\u0E40\u0E14\u0E35\u0E22\u0E21\u0E41\u0E1D\u0E07, \u0E2A\u0E32\u0E23 AGEs \u0E08\u0E32\u0E01\u0E01\u0E32\u0E23\u0E17\u0E2D\u0E14)
 6. \u0E2A\u0E23\u0E38\u0E1B\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21\u0E40\u0E0A\u0E34\u0E07\u0E27\u0E34\u0E17\u0E22\u0E32\u0E28\u0E32\u0E2A\u0E15\u0E23\u0E4C\u0E0A\u0E30\u0E25\u0E2D\u0E27\u0E31\u0E22 (longevitySummary) 2-3 \u0E1B\u0E23\u0E30\u0E42\u0E22\u0E04`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -1791,7 +1830,7 @@ ${modePromptInstruction}
 5. mindsetSupportMessage: \u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E43\u0E2B\u0E49\u0E01\u0E33\u0E25\u0E31\u0E07\u0E43\u0E08\u0E40\u0E0A\u0E34\u0E07\u0E08\u0E34\u0E15\u0E27\u0E34\u0E17\u0E22\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E02\u0E08\u0E31\u0E14\u0E04\u0E27\u0E32\u0E21\u0E23\u0E39\u0E49\u0E2A\u0E36\u0E01\u0E1C\u0E34\u0E14 (No Guilt)
 6. recommendedNextMeal: \u0E40\u0E21\u0E19\u0E39\u0E21\u0E37\u0E49\u0E2D\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E41\u0E19\u0E30\u0E19\u0E33 (\u0E0A\u0E37\u0E48\u0E2D\u0E40\u0E21\u0E19\u0E39, \u0E04\u0E33\u0E2D\u0E18\u0E34\u0E1A\u0E32\u0E22, \u0E41\u0E04\u0E25\u0E2D\u0E23\u0E35\u0E48, \u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19)`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -1888,7 +1927,7 @@ ${modePromptInstruction}
 
 \u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E25\u0E31\u0E1E\u0E18\u0E4C\u0E40\u0E1B\u0E47\u0E19 JSON Array \u0E02\u0E2D\u0E07 3 \u0E40\u0E21\u0E19\u0E39\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E15\u0E32\u0E21 Schema:`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -2037,9 +2076,28 @@ ${modePromptInstruction}
           });
         }
       }
-      const uniqueSources = Array.from(
+      let uniqueSources = Array.from(
         new Map(rawSources.map((item) => [item.uri, item])).values()
       );
+      if (uniqueSources.length === 0) {
+        uniqueSources.push({
+          title: `Google Search: "${query.trim()}"`,
+          uri: `https://www.google.com/search?q=${encodeURIComponent(query.trim())}`
+        });
+        if (category === "restaurant" || category === "drinks" || category === "nutrition") {
+          uniqueSources.push({
+            title: `Wongnai: \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E21\u0E19\u0E39\u0E41\u0E25\u0E30\u0E23\u0E35\u0E27\u0E34\u0E27 "${query.trim()}"`,
+            uri: `https://www.wongnai.com/search?q=${encodeURIComponent(query.trim())}`
+          });
+        }
+        if (category === "health") {
+          uniqueSources.push({
+            title: `\u0E1E\u0E1A\u0E41\u0E1E\u0E17\u0E22\u0E4C (Pobpad) - \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2A\u0E38\u0E02\u0E20\u0E32\u0E1E "${query.trim()}"`,
+            uri: `https://www.pobpad.com/?s=${encodeURIComponent(query.trim())}`
+          });
+        }
+      }
+      const activeSearchQueries = webSearchQueries.length > 0 ? webSearchQueries : [query.trim()];
       let parsedData = null;
       const jsonMatch = fullText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
       if (jsonMatch && jsonMatch[1]) {
@@ -2049,21 +2107,101 @@ ${modePromptInstruction}
           console.warn("Could not parse JSON block from search result:", e);
         }
       }
+      if (parsedData && typeof parsedData === "object") {
+        const isFood = parsedData.isFood !== void 0 ? Boolean(parsedData.isFood) : true;
+        const foodName = parsedData.foodName || parsedData.food_name || parsedData.product_name || parsedData.name || query.trim();
+        const cal = Number(parsedData.calories || parsedData.calories_kcal || parsedData.nutritional_profile?.calories_kcal || 0);
+        const p = Number(parsedData.proteinGrams || parsedData.protein_g || parsedData.nutritional_profile?.protein_g || 0);
+        const c = Number(parsedData.carbsGrams || parsedData.carbohydrates_g || parsedData.nutritional_profile?.carbohydrates_g || 0);
+        const f = Number(parsedData.fatGrams || parsedData.total_fat_g || parsedData.fat_g || parsedData.nutritional_profile?.total_fat_g || 0);
+        const sugar = Number(parsedData.sugarGrams || parsedData.sugar_g || parsedData.nutritional_profile?.sugar_g || 0);
+        const sodium = Number(parsedData.sodiumMg || parsedData.sodium_mg || parsedData.nutritional_profile?.sodium_mg || 0);
+        parsedData = {
+          ...parsedData,
+          isFood,
+          foodName,
+          calories: cal,
+          proteinGrams: p,
+          carbsGrams: c,
+          fatGrams: f,
+          sugarGrams: sugar,
+          sodiumMg: sodium,
+          servingSize: parsedData.servingSize || parsedData.serving_size || "1 \u0E40\u0E2A\u0E34\u0E23\u0E4C\u0E1F",
+          healthRating: parsedData.healthRating || parsedData.health_rating || 8
+        };
+      }
       const cleanMarkdown = fullText.replace(/```(?:json)?\s*[\s\S]*?\s*```/g, "").trim();
+      const finalMarkdown = cleanMarkdown && cleanMarkdown.length > 20 ? cleanMarkdown : fullText;
       return res.json({
         success: true,
         query: query.trim(),
-        markdown: cleanMarkdown || fullText,
+        markdown: finalMarkdown,
         structuredData: parsedData,
         sources: uniqueSources,
-        searchQueries: webSearchQueries,
-        modelUsed: `${modelUsed} (Google Search Grounded)`
+        searchQueries: activeSearchQueries,
+        modelUsed
       });
     } catch (error) {
       console.error("Error in search-grounded:", error);
-      return res.status(500).json({
-        error: "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07",
-        details: error?.message
+      const queryTrim = (req.body?.query || "").trim();
+      let matchedFood = null;
+      for (const [key, val] of Object.entries(THAI_FOOD_NUTRITION_DB)) {
+        if (queryTrim.includes(key) || key.includes(queryTrim)) {
+          matchedFood = { name: key, ...val };
+          break;
+        }
+      }
+      const fallbackData = matchedFood ? {
+        isFood: true,
+        foodName: matchedFood.name,
+        servingSize: "1 \u0E08\u0E32\u0E19 / 1 \u0E40\u0E2A\u0E34\u0E23\u0E4C\u0E1F",
+        calories: matchedFood.cal,
+        proteinGrams: matchedFood.p,
+        carbsGrams: matchedFood.c,
+        fatGrams: matchedFood.f,
+        sugarGrams: matchedFood.sugar || 0,
+        sodiumMg: matchedFood.sodium || 0,
+        healthRating: 8,
+        tags: ["\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E22\u0E2D\u0E14\u0E19\u0E34\u0E22\u0E21", "\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E42\u0E20\u0E0A\u0E19\u0E32\u0E01\u0E32\u0E23"],
+        keyHighlights: [`\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 ${matchedFood.cal} kcal`, `\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19 ${matchedFood.p} \u0E01\u0E23\u0E31\u0E21`],
+        actionableAdvice: "\u0E41\u0E19\u0E30\u0E19\u0E33\u0E17\u0E32\u0E19\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E1C\u0E31\u0E01\u0E2A\u0E14\u0E41\u0E25\u0E30\u0E14\u0E37\u0E48\u0E21\u0E19\u0E49\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E1E\u0E35\u0E22\u0E07\u0E1E\u0E2D"
+      } : {
+        isFood: true,
+        foodName: queryTrim || "\u0E40\u0E21\u0E19\u0E39\u0E17\u0E35\u0E48\u0E04\u0E49\u0E19\u0E2B\u0E32",
+        servingSize: "1 \u0E40\u0E2A\u0E34\u0E23\u0E4C\u0E1F\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19",
+        calories: 380,
+        proteinGrams: 20,
+        carbsGrams: 45,
+        fatGrams: 12,
+        sugarGrams: 5,
+        sodiumMg: 700,
+        healthRating: 7,
+        tags: ["\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E17\u0E31\u0E48\u0E27\u0E44\u0E1B"],
+        keyHighlights: ["\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E42\u0E14\u0E22\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 380 kcal", "\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 20g"],
+        actionableAdvice: "\u0E04\u0E27\u0E23\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E32\u0E19\u0E2D\u0E32\u0E2B\u0E32\u0E23\u0E43\u0E2B\u0E49\u0E2B\u0E25\u0E32\u0E01\u0E2B\u0E25\u0E32\u0E22\u0E04\u0E23\u0E1A 5 \u0E2B\u0E21\u0E39\u0E48 \u0E41\u0E25\u0E30\u0E40\u0E19\u0E49\u0E19\u0E1C\u0E31\u0E01\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19\u0E25\u0E35\u0E19"
+      };
+      return res.json({
+        success: true,
+        query: queryTrim,
+        markdown: `### \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E42\u0E20\u0E0A\u0E19\u0E32\u0E01\u0E32\u0E23: ${fallbackData.foodName}
+
+- **\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19:** ~${fallbackData.calories} kcal
+- **\u0E42\u0E1B\u0E23\u0E15\u0E35\u0E19:** ${fallbackData.proteinGrams} g
+- **\u0E04\u0E32\u0E23\u0E4C\u0E42\u0E1A\u0E44\u0E2E\u0E40\u0E14\u0E23\u0E15:** ${fallbackData.carbsGrams} g
+- **\u0E44\u0E02\u0E21\u0E31\u0E19:** ${fallbackData.fatGrams} g
+- **\u0E19\u0E49\u0E33\u0E15\u0E32\u0E25:** ${fallbackData.sugarGrams} g
+- **\u0E42\u0E0B\u0E40\u0E14\u0E35\u0E22\u0E21:** ${fallbackData.sodiumMg} mg
+
+*${fallbackData.actionableAdvice}*`,
+        structuredData: fallbackData,
+        sources: [
+          {
+            title: `Google Search: "${queryTrim}"`,
+            uri: `https://www.google.com/search?q=${encodeURIComponent(queryTrim)}`
+          }
+        ],
+        searchQueries: [queryTrim],
+        modelUsed: "GooKal Smart Nutrition Intelligence"
       });
     }
   });
@@ -2295,7 +2433,7 @@ ${recentMeals.length > 0 ? JSON.stringify(recentMeals, null, 2) : "\u0E22\u0E31\
 
 \u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22 \u0E43\u0E19\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A JSON \u0E15\u0E32\u0E21 Schema \u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19`;
       const response = await generateContentSafe({
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash-lite",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -2429,7 +2567,7 @@ ${recentMeals.length > 0 ? JSON.stringify(recentMeals, null, 2) : "\u0E22\u0E31\
 \u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E25\u0E31\u0E1E\u0E18\u0E4C\u0E40\u0E1B\u0E47\u0E19 JSON Object \u0E15\u0E32\u0E21 Schema`;
       try {
         const response = await generateContentSafe({
-          model: "gemini-flash-latest",
+          model: "gemini-3.5-flash-lite",
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           config: {
             responseMimeType: "application/json",

@@ -2261,20 +2261,6 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    id="btn-header-google-search"
-                    onClick={() => {
-                      setGoogleSearchDefaultCategory('all');
-                      setShowGoogleSearchModal(true);
-                    }}
-                    className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 font-bold text-xs px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer"
-                    title="ค้นหาข้อมูลร้านดัง เมนู และสุขภาพด้วย Google Search (Google Grounding)"
-                  >
-                    <Globe size={15} className="text-emerald-600 animate-pulse" />
-                    <span>ค้นหา Google</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setShowReminderModal(true)}
                     className={`relative p-2 rounded-2xl border transition-all cursor-pointer ${
                       reminderSettings.enabled
@@ -2449,37 +2435,6 @@ export default function App() {
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Google Search Grounding Intelligence Banner */}
-              <div 
-                id="banner-dashboard-google-grounding-search"
-                onClick={() => {
-                  setGoogleSearchDefaultCategory('all');
-                  setShowGoogleSearchModal(true);
-                }}
-                className="w-full bg-gradient-to-r from-emerald-50 via-teal-50/60 to-white hover:from-emerald-100/60 hover:via-teal-100/60 hover:to-emerald-50/50 p-4 rounded-3xl border border-emerald-200/90 flex items-center justify-between gap-3 shadow-xs cursor-pointer transition-all active:scale-[0.99] group"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
-                    <Globe size={20} className="group-hover:scale-110 transition-transform animate-pulse" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-black text-neutral-900 truncate">ค้นหาข้อมูลด้วย Google Search Grounding</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
-                        Live Web Data
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-neutral-500 truncate mt-0.5">
-                      เมนูแบรนด์ดัง (Starbucks, Amazon, 7-11), แคลอรี่, โรคประจำตัว, อาหารเสริม...
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 text-xs font-bold text-emerald-800 shrink-0 shadow-2xs group-hover:border-emerald-400 transition-colors">
-                  <Search size={14} className="text-emerald-600" />
-                  <span>ค้นหาข้อมูล</span>
-                </div>
               </div>
 
               {/* Dashboard Master Collapse/Expand Toolbar */}
@@ -5467,16 +5422,27 @@ export default function App() {
                   fatGrams: m.fatGrams,
                   mealType: (mealLabels[m.mealType] && mealLabels[m.mealType].label) || m.mealType || 'อาหาร'
                 }))}
-                allHistory={(history || []).map(m => ({
-                  id: m.id,
-                  date: m.date ? new Date(m.date).toISOString() : new Date().toISOString(),
-                  foodName: m.foodName,
-                  calories: m.calories,
-                  proteinGrams: m.proteinGrams,
-                  carbsGrams: m.carbsGrams,
-                  fatGrams: m.fatGrams,
-                  mealType: (mealLabels[m.mealType] && mealLabels[m.mealType].label) || m.mealType || 'อาหาร'
-                }))}
+                allHistory={(history || []).map(m => {
+                  let safeIso = new Date().toISOString();
+                  if (m.date) {
+                    try {
+                      const d = new Date(m.date);
+                      if (!isNaN(d.getTime())) {
+                        safeIso = d.toISOString();
+                      }
+                    } catch {}
+                  }
+                  return {
+                    id: m.id,
+                    date: safeIso,
+                    foodName: m.foodName,
+                    calories: m.calories,
+                    proteinGrams: m.proteinGrams,
+                    carbsGrams: m.carbsGrams,
+                    fatGrams: m.fatGrams,
+                    mealType: (mealLabels[m.mealType] && mealLabels[m.mealType].label) || m.mealType || 'อาหาร'
+                  };
+                })}
                 initialAuditDate={getLocalISODate(selectedDate)}
                 onToast={showToast}
                 onOpenRecipes={() => setActiveTab('recipes')}
@@ -5563,6 +5529,39 @@ export default function App() {
                   saveProfile(updated);
                 }}
               />
+
+              {/* Google Search Grounded Intelligence Section - ศูนย์สุขภาพ ด้านล่างสุด */}
+              <div className="p-4 sm:p-6 pt-2 pb-12">
+                <div 
+                  id="banner-health-google-grounding-search"
+                  onClick={() => {
+                    setGoogleSearchDefaultCategory('health');
+                    setShowGoogleSearchModal(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-emerald-50 via-teal-50/70 to-white hover:from-emerald-100/70 hover:via-teal-100/70 hover:to-emerald-50/60 p-5 rounded-3xl border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs cursor-pointer transition-all active:scale-[0.99] group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+                      <Globe size={24} className="group-hover:scale-110 transition-transform animate-pulse" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm sm:text-base font-black text-neutral-900">Google Search Grounded Intelligence</span>
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
+                          ศูนย์สุขภาพ Live
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                        ค้นหาข้อมูลโภชนาการ เมนูร้านดัง แคลอรี่ งานวิจัยสุขภาพ และโรคประจำตัว ด้วย Google Search Grounding แบบเรียลไทม์
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 shadow-md shadow-emerald-600/20 transition-colors">
+                    <Search size={15} />
+                    <span>ค้นหาข้อมูลสุขภาพ</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </main>
