@@ -127,40 +127,40 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
   const displayDateThai = `${formatFullThaiDate(selectedDate)} (${formatDateDMY(selectedDate)})`;
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100/80 space-y-5">
+    <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100/80 space-y-4 sm:space-y-5 w-full max-w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-cyan-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
-            <Droplet size={22} className="animate-bounce" />
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+            <Droplet size={20} className="animate-bounce" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-neutral-900 text-lg tracking-tight">บันทึกการดื่มน้ำ (Hydration)</h3>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h3 className="font-bold text-neutral-900 text-base sm:text-lg tracking-tight">บันทึกการดื่มน้ำ</h3>
               {currentTotalMl >= goal.targetMl && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 flex items-center gap-1">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 flex items-center gap-1 shrink-0">
                   <Check size={11} /> ครบเป้า
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-neutral-500 font-medium">
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 flex-wrap">
+              <span className="text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
                 {isToday ? `📅 วันนี้ (${displayDateThai})` : `📅 ย้อนหลัง (${displayDateThai})`}
               </span>
               {currentTotalMl === 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  ✨ เริ่มต้นวันใหม่ 0 ml
+                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 shrink-0">
+                  ✨ 0 ml
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {currentTotalMl > 0 && (
             showConfirmReset ? (
               <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-1 rounded-2xl animate-in fade-in">
-                <span className="text-[11px] font-bold text-rose-700">ล้างเป็น 0 ml?</span>
+                <span className="text-[10px] sm:text-[11px] font-bold text-rose-700">ล้าง?</span>
                 <button
                   type="button"
                   id="water-header-confirm-reset-btn"
@@ -182,11 +182,11 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
                 type="button"
                 id="water-header-reset-btn"
                 onClick={() => setShowConfirmReset(true)}
-                className="px-3 py-2 rounded-2xl bg-neutral-100 hover:bg-rose-50 text-neutral-600 hover:text-rose-600 border border-neutral-200 hover:border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl bg-neutral-100 hover:bg-rose-50 text-neutral-600 hover:text-rose-600 border border-neutral-200 hover:border-rose-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                 title="รีเซ็ตการดื่มน้ำของวันนี้เป็น 0 ml"
               >
-                <RotateCcw size={14} className="text-rose-500" />
-                <span>รีเซ็ต 0 ml</span>
+                <RotateCcw size={13} className="text-rose-500" />
+                <span className="text-[11px] sm:text-xs">รีเซ็ต</span>
               </button>
             )
           )}
@@ -195,7 +195,7 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
             type="button"
             id="water-tracker-goal-btn"
             onClick={() => setShowGoalEditor(!showGoalEditor)}
-            className="p-2.5 rounded-2xl bg-neutral-50 hover:bg-cyan-50 text-neutral-600 hover:text-cyan-700 border border-neutral-200 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl bg-neutral-50 hover:bg-cyan-50 text-neutral-600 hover:text-cyan-700 border border-neutral-200 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
             title="ปรับเป้าหมายการดื่มน้ำ"
           >
             <Settings2 size={15} />
@@ -205,7 +205,7 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
           <button
             type="button"
             onClick={toggleOpen}
-            className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
             title={isOpen ? "ยุบเนื้อหา" : "ขยายเนื้อหา"}
           >
             <ChevronUp size={20} className={`transition-transform duration-300 ${isOpen ? '' : 'rotate-180'}`} />

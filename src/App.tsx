@@ -2206,11 +2206,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 text-neutral-800 font-sans sm:p-4 md:p-8 flex items-center justify-center">
-      <div className={`w-full ${activeTab === 'crm' || activeTab === 'recipes' ? 'max-w-4xl' : 'max-w-md'} h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl sm:shadow-orange-900/10 sm:ring-8 ring-white/50 relative overflow-hidden flex flex-col transition-all duration-300`}>
+    <div className="min-h-screen bg-neutral-100 text-neutral-800 font-sans sm:p-4 md:p-8 flex items-center justify-center overflow-x-hidden w-full max-w-full">
+      <div className={`w-full ${activeTab === 'crm' || activeTab === 'recipes' ? 'max-w-4xl' : 'max-w-md'} h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl sm:shadow-orange-900/10 sm:ring-8 ring-white/50 relative overflow-hidden flex flex-col transition-all duration-300 max-w-full`}>
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-neutral-50/50 pb-24 relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-50/50 pb-24 relative w-full max-w-full">
           {/* Offline Mode Banner */}
           {!isOnline && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-amber-900 text-xs font-semibold shrink-0 animate-in slide-in-from-top duration-300">
@@ -2245,145 +2245,152 @@ export default function App() {
             isDashboardLoading ? (
               <DashboardSkeleton />
             ) : (
-            <div className="p-6 flex flex-col gap-6 animate-in fade-in duration-300 relative">
+            <div className="p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300 relative w-full max-w-full overflow-x-hidden">
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">แดชบอร์ด</h1>
-                  <p className="text-neutral-500 font-medium text-sm mt-1 flex items-center gap-2">
-                    <span>{formatFullThaiDate(displayDate)}</span>
-                    <span className="text-[11px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">
-                      {formatDateDMY(displayDate)}
-                    </span>
-                  </p>
+              {/* Dashboard Mobile Ergonomic Header */}
+              <div className="flex flex-col gap-2.5 w-full">
+                {/* Top Row: Title + Date on Left, Bell & Profile on Right */}
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div className="min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">แดชบอร์ด</h1>
+                    <p className="text-neutral-500 font-medium text-xs sm:text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span>{formatFullThaiDate(displayDate)}</span>
+                      <span className="text-[10px] sm:text-[11px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">
+                        {formatDateDMY(displayDate)}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowReminderModal(true)}
+                      className={`relative p-2 rounded-2xl border transition-all cursor-pointer ${
+                        reminderSettings.enabled
+                          ? 'bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200 shadow-xs'
+                          : 'bg-white hover:bg-neutral-100 text-neutral-500 border-neutral-200'
+                      }`}
+                      title="ตั้งเวลาแจ้งเตือนมื้ออาหาร (Meal Reminders)"
+                    >
+                      {reminderSettings.enabled ? (
+                        <BellRing size={16} className="text-orange-500" />
+                      ) : (
+                        <Bell size={16} />
+                      )}
+                      {reminderSettings.enabled && (
+                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                      )}
+                    </button>
+
+                    {/* Google User Profile & Auth Pill */}
+                    <div className="relative">
+                      {currentGoogleUser ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowUserDropdown(prev => !prev)}
+                          className="flex items-center gap-1.5 bg-white hover:bg-neutral-50 border border-neutral-200/90 rounded-2xl p-1 pr-2.5 transition-all cursor-pointer shadow-2xs group max-w-[130px] sm:max-w-[160px]"
+                          title="จัดการบัญชี Google"
+                        >
+                          <img 
+                            src={currentGoogleUser.picture} 
+                            alt={currentGoogleUser.name} 
+                            className="w-7 h-7 rounded-xl object-cover ring-1 ring-orange-200 shrink-0"
+                          />
+                          <span className="text-xs font-bold text-neutral-800 truncate">
+                            {currentGoogleUser.name?.split(' ')?.[0] || currentGoogleUser.name}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowGoogleLoginModal(true)}
+                          className="flex items-center gap-1.5 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-800 font-bold text-xs px-2.5 py-1.5 rounded-2xl shadow-xs transition-all cursor-pointer"
+                          title="เข้าสู่ระบบด้วย Google"
+                        >
+                          <LogIn size={14} className="text-orange-500" />
+                          <span>เข้าสู่ระบบ</span>
+                        </button>
+                      )}
+
+                      {/* Dropdown Menu */}
+                      {showUserDropdown && currentGoogleUser && (
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-100">
+                            <img 
+                              src={currentGoogleUser.picture} 
+                              alt={currentGoogleUser.name} 
+                              className="w-10 h-10 rounded-xl object-cover ring-2 ring-orange-100"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-bold text-xs text-neutral-900 truncate">{currentGoogleUser.name}</h4>
+                              <p className="text-[10px] text-neutral-500 truncate">{currentGoogleUser.email}</p>
+                              <span className="inline-block mt-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
+                                Google Account ✓
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowUserDropdown(false);
+                                setShowGoogleLoginModal(true);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span>สลับบัญชี Google</span>
+                              <ChevronRight size={14} className="text-neutral-400" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleGoogleLogout}
+                              className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span>ออกจากระบบ</span>
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowReminderModal(true)}
-                    className={`relative p-2 rounded-2xl border transition-all cursor-pointer ${
-                      reminderSettings.enabled
-                        ? 'bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200 shadow-xs'
-                        : 'bg-white hover:bg-neutral-100 text-neutral-500 border-neutral-200'
-                    }`}
-                    title="ตั้งเวลาแจ้งเตือนมื้ออาหาร (Meal Reminders)"
-                  >
-                    {reminderSettings.enabled ? (
-                      <BellRing size={16} className="text-orange-500" />
-                    ) : (
-                      <Bell size={16} />
-                    )}
-                    {reminderSettings.enabled && (
-                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
-                    )}
-                  </button>
-
+                {/* Sub Row: Quick Navigation Shortcuts (Full-width grid) */}
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
                   <button
                     onClick={() => setActiveTab('health')}
-                    className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-1 sm:gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs py-2 px-1.5 rounded-2xl shadow-xs transition-all cursor-pointer"
                     title="เปิดศูนย์สุขภาพองค์รวม & ชีวมาร์กเกอร์"
                   >
-                    <Heart size={15} className="text-emerald-600" />
-                    <span>ศูนย์สุขภาพ</span>
+                    <Heart size={14} className="text-emerald-600 shrink-0" />
+                    <span className="truncate">ศูนย์สุขภาพ</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('recipes')}
-                    className="flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 font-bold text-xs px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-1 sm:gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 font-bold text-xs py-2 px-1.5 rounded-2xl shadow-xs transition-all cursor-pointer"
                     title="ค้นหาสูตรอาหารคลีนด้วย AI"
                   >
-                    <ChefHat size={15} className="text-orange-600" />
-                    <span>สูตรอาหาร</span>
+                    <ChefHat size={14} className="text-orange-600 shrink-0" />
+                    <span className="truncate">สูตรอาหาร</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('coach')}
-                    className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xs transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-1 sm:gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs py-2 px-1.5 rounded-2xl shadow-xs transition-all cursor-pointer"
                     title="เปิดโค้ช AI ดูแลสุขภาพส่วนตัว"
                   >
-                    <Bot size={16} className="text-orange-400" />
-                    <span>โค้ช AI</span>
+                    <Bot size={14} className="text-orange-400 shrink-0" />
+                    <span className="truncate">โค้ช AI</span>
                   </button>
-
-                  {/* Google User Profile & Auth Pill */}
-                  <div className="relative">
-                    {currentGoogleUser ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowUserDropdown(prev => !prev)}
-                        className="flex items-center gap-2 bg-white hover:bg-neutral-50 border border-neutral-200/90 rounded-2xl p-1 pr-3 transition-all cursor-pointer shadow-2xs group"
-                        title="จัดการบัญชี Google"
-                      >
-                        <img 
-                          src={currentGoogleUser.picture} 
-                          alt={currentGoogleUser.name} 
-                          className="w-7 h-7 rounded-xl object-cover ring-1 ring-orange-200"
-                        />
-                        <span className="text-xs font-bold text-neutral-800 max-w-[100px] truncate">
-                          {currentGoogleUser.name}
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setShowGoogleLoginModal(true)}
-                        className="flex items-center gap-1.5 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-800 font-bold text-xs px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer"
-                        title="เข้าสู่ระบบด้วย Google"
-                      >
-                        <LogIn size={15} className="text-orange-500" />
-                        <span>เข้าสู่ระบบ</span>
-                      </button>
-                    )}
-
-                    {/* Dropdown Menu */}
-                    {showUserDropdown && currentGoogleUser && (
-                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-100">
-                          <img 
-                            src={currentGoogleUser.picture} 
-                            alt={currentGoogleUser.name} 
-                            className="w-10 h-10 rounded-xl object-cover ring-2 ring-orange-100"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-bold text-xs text-neutral-900 truncate">{currentGoogleUser.name}</h4>
-                            <p className="text-[10px] text-neutral-500 truncate">{currentGoogleUser.email}</p>
-                            <span className="inline-block mt-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
-                              Google Account ✓
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 space-y-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowUserDropdown(false);
-                              setShowGoogleLoginModal(true);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center justify-between cursor-pointer"
-                          >
-                            <span>สลับบัญชี Google</span>
-                            <ChevronRight size={14} className="text-neutral-400" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleGoogleLogout}
-                            className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-between cursor-pointer"
-                          >
-                            <span>ออกจากระบบ</span>
-                            <X size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 
               {/* 7 Days Strip */}
-              <div className="flex gap-1.5 w-full justify-between">
+              <div className="flex gap-1 sm:gap-1.5 w-full justify-between items-center">
                 {past7Days.map((date, i) => {
                   const isSelected = isSameDay(date, selectedDate);
                   const isToday = isSameDay(date, new Date());
@@ -2401,16 +2408,16 @@ export default function App() {
                     <button
                       key={i}
                       onClick={() => setSelectedDate(date)}
-                      className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-2xl transition-all shadow-sm ${
+                      className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 rounded-2xl transition-all shadow-2xs ${
                         isSelected 
-                          ? 'bg-orange-500 text-white ring-2 ring-orange-500 ring-offset-1 ring-offset-neutral-50' 
+                          ? 'bg-orange-500 text-white ring-2 ring-orange-500 ring-offset-1 ring-offset-neutral-50 scale-[1.02]' 
                           : 'bg-white text-neutral-500 border border-neutral-100 hover:bg-neutral-50 active:scale-95'
                       }`}
                     >
-                      <span className="text-[10px] font-bold uppercase mb-1">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase mb-0.5 sm:mb-1">
                         {date?.toLocaleDateString('th-TH', { weekday: 'short' })}
                       </span>
-                      <div className="relative w-8 h-8 flex items-center justify-center mb-1">
+                      <div className="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-0.5">
                         <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
                           {totalMacros > 0 ? (
                             <>
@@ -2425,7 +2432,7 @@ export default function App() {
                             <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke={isSelected ? "rgba(255,255,255,0.3)" : "#f5f5f5"} strokeWidth="3.5" />
                           )}
                         </svg>
-                        <span className={`relative text-sm sm:text-base font-black ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
+                        <span className={`relative text-xs sm:text-base font-black ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
                           {date.getDate()}
                         </span>
                       </div>
@@ -2462,28 +2469,39 @@ export default function App() {
               </div>
 
               {/* Calorie Card */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900">แคลอรี</h2>
-                    {!isCalorieCardOpen && (
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
-                        {totalCaloriesDisplay.toLocaleString()} / {safeDailyGoal.toLocaleString()} kcal
-                      </span>
-                    )}
+              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10 w-full max-w-full overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 mb-4">
+                  <div className="flex items-center justify-between sm:justify-start gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-bold text-neutral-900">แคลอรี</h2>
+                      {!isCalorieCardOpen && (
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                          {totalCaloriesDisplay.toLocaleString()} / {safeDailyGoal.toLocaleString()} kcal
+                        </span>
+                      )}
+                    </div>
+                    {/* On mobile, Chevron on the top right of title */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCalorieCardOpen(!isCalorieCardOpen)}
+                      className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer sm:hidden"
+                      title={isCalorieCardOpen ? "ยุบเนื้อหา" : "ขยายเนื้อหา"}
+                    >
+                      <ChevronUp size={18} className={`transition-transform duration-300 ${isCalorieCardOpen ? '' : 'rotate-180'}`} />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
                     <button type="button" 
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowCalorieGoalsModal(true); }}
-                      className="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-full transition-colors relative z-50 cursor-pointer pointer-events-auto flex items-center gap-1 border border-orange-200"
+                      className="flex-1 sm:flex-initial text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-full transition-colors relative z-50 cursor-pointer pointer-events-auto flex items-center justify-center gap-1 border border-orange-200"
                       title="คำนวณเป้าหมายแคลอรี Deficit / Surplus"
                     >
                       <Target size={13} className="text-orange-500" />
-                      คำนวณเป้าหมาย
+                      <span>คำนวณเป้าหมาย</span>
                     </button>
                     <button type="button" 
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowEnergyEditor(true); }}
-                      className="text-xs font-medium text-neutral-600 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1.5 rounded-full transition-colors relative z-50 cursor-pointer pointer-events-auto"
+                      className="flex-1 sm:flex-initial text-xs font-medium text-neutral-600 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1.5 rounded-full transition-colors relative z-50 cursor-pointer pointer-events-auto text-center"
                       title="แก้ไขค่า BMR/TDEE โดยตรง"
                     >
                       แก้ไขตัวเลข
@@ -2491,7 +2509,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsCalorieCardOpen(!isCalorieCardOpen)}
-                      className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
+                      className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer hidden sm:block"
                       title={isCalorieCardOpen ? "ยุบเนื้อหา" : "ขยายเนื้อหา"}
                     >
                       <ChevronUp size={18} className={`transition-transform duration-300 ${isCalorieCardOpen ? '' : 'rotate-180'}`} />
@@ -2516,12 +2534,12 @@ export default function App() {
                             </div>
                           </div>
                           <div className="space-y-3 mb-5">
-                            <div className="flex items-center justify-between gap-4 bg-white p-2.5 rounded-xl border border-neutral-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 bg-white p-2.5 rounded-xl border border-neutral-200">
                               <div>
                                 <label className="text-xs font-bold text-neutral-700 block">1. BMR (อัตราเผาผลาญพื้นฐาน)</label>
                                 <span className="text-[10px] text-neutral-400">พลังงานขั้นต่ำที่อวัยวะใช้ตอนพักผ่อน</span>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 self-end sm:self-center">
                                 <input 
                                   type="number" 
                                   value={editingEnergy.bmr} 
@@ -2532,7 +2550,7 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 bg-white p-2.5 rounded-xl border border-blue-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 bg-white p-2.5 rounded-xl border border-blue-200">
                               <div>
                                 <label className="text-xs font-bold text-blue-700 block">2. TDEE จริง (อัตราเผาผลาญทั้งหมดต่อวัน)</label>
                                 <span className="text-[10px] text-neutral-500">
@@ -2552,7 +2570,7 @@ export default function App() {
                                   })()}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 self-end sm:self-center">
                                 <input 
                                   type="number" 
                                   value={editingEnergy.tdee} 
@@ -2563,7 +2581,7 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 bg-white p-2.5 rounded-xl border border-orange-200 bg-orange-50/30">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 bg-white p-2.5 rounded-xl border border-orange-200 bg-orange-50/30">
                               <div>
                                 <label className="text-xs font-bold text-orange-700 block">3. เป้าหมายแคลอรีต่อวัน (Target Goal)</label>
                                 <span className="text-[10px] text-neutral-500">
@@ -2574,7 +2592,7 @@ export default function App() {
                                       : 'เท่ากับ TDEE (รักษาน้ำหนัก)'}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 self-end sm:self-center">
                                 <input 
                                   type="number" 
                                   value={editingEnergy.targetCalories} 
@@ -2833,17 +2851,17 @@ export default function App() {
                           </div>
                           
                           {/* Legend */}
-                          <div className="grid grid-cols-4 text-[10px] font-bold text-neutral-400 tracking-wide px-1 pt-1.5 border-t border-neutral-100">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-bold text-neutral-400 tracking-wide px-1 pt-2 border-t border-neutral-100">
                             <div className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></div> &lt; BMR</div>
                               <span className="text-neutral-700 font-semibold">{bmr.toLocaleString()} kcal</span>
                             </div>
-                            <div className="flex flex-col gap-0.5 text-center">
-                              <div className="flex items-center justify-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div> ในเป้าหมาย</div>
+                            <div className="flex flex-col gap-0.5 text-right sm:text-center">
+                              <div className="flex items-center justify-end sm:justify-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div> ในเป้าหมาย</div>
                               <span className="text-emerald-700 font-semibold">{safeDailyGoal.toLocaleString()} kcal</span>
                             </div>
-                            <div className="flex flex-col gap-0.5 text-center">
-                              <div className="flex items-center justify-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></div> เกินเป้า&lt;TDEE</div>
+                            <div className="flex flex-col gap-0.5 text-left sm:text-center">
+                              <div className="flex items-center justify-start sm:justify-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></div> เกินเป้า&lt;TDEE</div>
                               <span className="text-orange-700 font-semibold">{tdee.toLocaleString()} kcal</span>
                             </div>
                             <div className="flex flex-col gap-0.5 text-right">
@@ -2859,20 +2877,20 @@ export default function App() {
               </div>
 
               {/* Nutrients Card */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900">สารอาหาร</h2>
+              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10 w-full max-w-full overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="text-base sm:text-lg font-bold text-neutral-900 shrink-0">สารอาหาร</h2>
                     {!isNutrientsCardOpen && (
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                      <span className="text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600 truncate">
                         P: {totalProtein}g • C: {totalCarbs}g • F: {totalFat}g
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <button type="button" 
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMacroEditor(true); }}
-                      className="text-xs font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors relative z-50 cursor-pointer pointer-events-auto"
+                      className="text-xs font-bold text-orange-500 bg-orange-50 px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors relative z-50 cursor-pointer pointer-events-auto"
                     >
                       ปรับแต่ง
                     </button>
@@ -2963,7 +2981,7 @@ export default function App() {
                   </div>
                 ) : (
                 <div className="w-full">
-                  <div className="grid grid-cols-3 gap-y-6 w-full">
+                  <div className="grid grid-cols-3 gap-y-4 sm:gap-y-6 gap-x-1 sm:gap-x-2 w-full">
                       {/* Carbs */}
                       {(() => {
                         const goalVal = Math.max(1, carbsGoal || 1);
@@ -2975,7 +2993,7 @@ export default function App() {
                         const overOffset = circumference * (1 - overRatio);
                         return (
                           <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[72px] h-[72px] mb-3">
+                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
                                 <circle cx="36" cy="36" r="30" stroke="#22c55e" strokeWidth="6" fill="transparent" 
@@ -2989,10 +3007,10 @@ export default function App() {
                                     strokeLinecap="round" />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-3xl">🍞</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🍞</div>
                             </div>
-                            <span className="text-sm text-neutral-500 mb-1">คาร์บ</span>
-                            <span className="text-sm font-bold text-neutral-900">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">คาร์บ</span>
+                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
                           </div>
                         );
                       })()}
@@ -3008,7 +3026,7 @@ export default function App() {
                         const overOffset = circumference * (1 - overRatio);
                         return (
                           <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[72px] h-[72px] mb-3">
+                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
                                 <circle cx="36" cy="36" r="30" stroke="#3b82f6" strokeWidth="6" fill="transparent" 
@@ -3022,10 +3040,10 @@ export default function App() {
                                     strokeLinecap="round" />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-3xl">🥩</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🥩</div>
                             </div>
-                            <span className="text-sm text-neutral-500 mb-1">โปรตีน</span>
-                            <span className="text-sm font-bold text-neutral-900">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">โปรตีน</span>
+                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
                           </div>
                         );
                       })()}
@@ -3041,7 +3059,7 @@ export default function App() {
                         const overOffset = circumference * (1 - overRatio);
                         return (
                           <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[72px] h-[72px] mb-3">
+                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
                                 <circle cx="36" cy="36" r="30" stroke="#eab308" strokeWidth="6" fill="transparent" 
@@ -3055,10 +3073,10 @@ export default function App() {
                                     strokeLinecap="round" />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-3xl">🧀</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🧀</div>
                             </div>
-                            <span className="text-sm text-neutral-500 mb-1">ไขมัน</span>
-                            <span className="text-sm font-bold text-neutral-900">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">ไขมัน</span>
+                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
                           </div>
                         );
                       })()}
@@ -3074,7 +3092,7 @@ export default function App() {
                         const overOffset = circumference * (1 - overRatio);
                         return (
                           <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[72px] h-[72px] mb-3">
+                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
                                 <circle cx="36" cy="36" r="30" stroke="#ec4899" strokeWidth="6" fill="transparent" 
@@ -3088,12 +3106,12 @@ export default function App() {
                                     strokeLinecap="round" />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-3xl">🍭</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🍭</div>
                             </div>
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className="text-sm text-neutral-500">น้ำตาล</span>
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className="text-xs sm:text-sm text-neutral-500">น้ำตาล</span>
                             </div>
-                            <span className="text-sm font-bold text-neutral-900">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
                           </div>
                         );
                       })()}
@@ -3109,7 +3127,7 @@ export default function App() {
                         const overOffset = circumference * (1 - overRatio);
                         return (
                           <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[72px] h-[72px] mb-3">
+                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
                                 <circle cx="36" cy="36" r="30" stroke="#14b8a6" strokeWidth="6" fill="transparent" 
@@ -3123,12 +3141,12 @@ export default function App() {
                                     strokeLinecap="round" />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-3xl">🧂</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🧂</div>
                             </div>
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className="text-sm text-neutral-500">โซเดียม</span>
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className="text-xs sm:text-sm text-neutral-500">โซเดียม</span>
                             </div>
-                            <span className="text-sm font-bold text-neutral-900">{currentVal} / {goalVal} มก.</span>
+                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} มก.</span>
                           </div>
                         );
                       })()}
@@ -3156,12 +3174,12 @@ export default function App() {
                 onOpenFastingStagesModal={() => setShowFastingStagesModal(true)}
               />
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10">
+              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 flex flex-col relative z-10 w-full max-w-full overflow-hidden">
                 <button type="button" 
                   className="w-full flex items-center justify-between group"
                   onClick={() => setIsMealSuggestionsOpen(!isMealSuggestionsOpen)}
                 >
-                  <h2 className="text-lg font-bold text-neutral-900">ไอเดียเมนูอาหาร</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-neutral-900">ไอเดียเมนูอาหาร</h2>
                   <ChevronUp size={20} className={`text-neutral-400 transition-transform duration-300 ${isMealSuggestionsOpen ? '' : 'rotate-180'}`} />
                 </button>
                 
@@ -3254,15 +3272,15 @@ export default function App() {
               </div>
 
               {/* Personal AI Coach Spotlight Card */}
-              <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-orange-950 rounded-3xl p-5 text-white shadow-lg shadow-neutral-900/10 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-orange-950 rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-neutral-900/10 relative overflow-hidden w-full max-w-full">
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-400/30 flex items-center justify-center text-orange-400">
                       <Bot size={18} />
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-orange-300">Personal AI Nutrition Coach 24/7</span>
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-orange-300 truncate">Personal AI Nutrition Coach 24/7</span>
                   </div>
-                  <h3 className="text-lg font-black tracking-tight text-white mb-1">โค้ช AI ดูแลสุขภาพส่วนตัว</h3>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white mb-1">โค้ช AI ดูแลสุขภาพส่วนตัว</h3>
                   <p className="text-xs text-neutral-300 leading-relaxed mb-4">
                     ปรึกษาโภชนาการ ถามเมนูอาหาร ตรวจการบ้านมื้ออาหารประจำวัน และบันทึกเช็กลิสต์วินัยสุขภาพ
                   </p>
@@ -3287,7 +3305,7 @@ export default function App() {
                 const expiringIngredientNames: string[] = Array.from(new Set<string>(expiringItems.map(i => i.name.trim()))).filter((name): name is string => Boolean(name));
 
                 return (
-                  <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 rounded-3xl p-5 text-white shadow-lg shadow-emerald-700/20 relative overflow-hidden">
+                  <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-emerald-700/20 relative overflow-hidden w-full max-w-full">
                     <div className="relative z-10 space-y-3">
                       {/* Collapsible Header Button */}
                       <button
@@ -3305,19 +3323,19 @@ export default function App() {
                       >
                         {/* Top Badge & Action Row */}
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shrink-0 shadow-xs">
                               <ChefHat size={18} />
                             </div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">
-                              AI Clean Recipe & Pantry Integration
+                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-100 truncate">
+                              AI Clean Recipe & Pantry
                             </span>
                           </div>
 
                           {/* Top Right Badges & Chevron Arrow */}
-                          <div className="flex items-center gap-2">
-                            <span className="bg-white/20 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-full shadow-2xs">
-                              {dashboardInventory.length} รายการในคลัง
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <span className="bg-white/20 text-white font-extrabold text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-1 rounded-full shadow-2xs">
+                              {dashboardInventory.length} รายการ
                             </span>
                             <div 
                               title={isPantryRecipeSpotlightOpen ? 'ยุบหัวข้อนี้' : 'ขยายหัวข้อนี้'}
@@ -3333,7 +3351,7 @@ export default function App() {
 
                         {/* Title & Subtitle */}
                         <div className="pr-2">
-                          <h3 className="text-lg font-black tracking-tight text-white mb-0.5">
+                          <h3 className="text-base sm:text-lg font-black tracking-tight text-white mb-0.5">
                             ค้นหาสูตรอาหารคลีน จากของในตู้เย็น & ตู้กับข้าว
                           </h3>
 
@@ -3433,12 +3451,12 @@ export default function App() {
               })()}
 
               {/* Health Data */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100">
+              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 w-full max-w-full overflow-hidden">
                 <button type="button" 
                   className="w-full flex items-center justify-between group"
                   onClick={() => setIsHealthDataOpen(!isHealthDataOpen)}
                 >
-                  <h3 className="font-bold text-neutral-900">ข้อมูลสุขภาพตอนเริ่มต้น</h3>
+                  <h3 className="font-bold text-neutral-900 text-base sm:text-lg">ข้อมูลสุขภาพตอนเริ่มต้น</h3>
                   <ChevronUp size={20} className={`text-neutral-400 transition-transform duration-300 ${isHealthDataOpen ? '' : 'rotate-180'}`} />
                 </button>
                 

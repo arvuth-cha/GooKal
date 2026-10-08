@@ -405,34 +405,34 @@ export const IntermittentFastingTracker: React.FC<{
   const previewInfo = getSettingTimePreview();
 
   return (
-    <div id="intermittent-fasting-card" className="bg-white rounded-[2.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100/80 space-y-6">
+    <div id="intermittent-fasting-card" className="bg-white rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100/80 space-y-5 sm:space-y-6 w-full max-w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <Timer size={22} className={activeSession?.isActive ? 'animate-pulse' : ''} />
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
+            <Timer size={20} className={activeSession?.isActive ? 'animate-pulse' : ''} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-neutral-900 text-lg tracking-tight">นาฬิกา Intermittent Fasting (IF)</h3>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h3 className="font-bold text-neutral-900 text-base sm:text-lg tracking-tight">นาฬิกา IF Fasting</h3>
               {activeSession?.isActive && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold animate-pulse">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold animate-pulse shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   กำลังนับ
                 </span>
               )}
             </div>
-            <p className="text-xs text-neutral-500 font-medium">บันทึกและจับเวลาช่วงอดอาหาร (IF) พร้อมระบุเวลาเริ่มเองได้แม่นยำ</p>
+            <p className="text-[11px] sm:text-xs text-neutral-500 font-medium truncate">บันทึกและจับเวลาช่วงอดอาหาร (IF) ระบุเวลาเริ่มได้</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {fastingHistory.length > 0 && (
             <button
               type="button"
               id="fasting-history-modal-btn"
               onClick={() => setShowHistoryModal(true)}
-              className="p-2.5 rounded-2xl bg-neutral-50 hover:bg-orange-50 text-neutral-600 hover:text-orange-600 border border-neutral-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="p-2 sm:p-2.5 rounded-2xl bg-neutral-50 hover:bg-orange-50 text-neutral-600 hover:text-orange-600 border border-neutral-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <History size={15} />
               <span className="hidden sm:inline">ประวัติ ({fastingHistory.length})</span>
@@ -442,7 +442,7 @@ export const IntermittentFastingTracker: React.FC<{
           <button
             type="button"
             onClick={toggleOpen}
-            className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer"
             title={isOpen ? "ยุบเนื้อหา" : "ขยายเนื้อหา"}
           >
             <ChevronUp size={20} className={`transition-transform duration-300 ${isOpen ? '' : 'rotate-180'}`} />
@@ -551,12 +551,12 @@ export const IntermittentFastingTracker: React.FC<{
             )}
 
             {/* Timer & Radial Progress Showcase Card */}
-            <div className="bg-gradient-to-b from-neutral-900 via-neutral-900 to-neutral-800 rounded-3xl p-6 text-white text-center shadow-xl relative overflow-hidden">
+            <div className="bg-gradient-to-b from-neutral-900 via-neutral-900 to-neutral-800 rounded-3xl p-4 sm:p-6 text-white text-center shadow-xl relative overflow-hidden w-full max-w-full">
               {/* Ambient Glows */}
               <div className="absolute top-0 right-0 w-56 h-56 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10 space-y-5">
+              <div className="relative z-10 space-y-4 sm:space-y-5">
                 {/* Status Badges & Edit Button */}
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-orange-300 text-xs font-bold backdrop-blur-md">
@@ -580,10 +580,10 @@ export const IntermittentFastingTracker: React.FC<{
 
                 {/* Big Digital Clock Display */}
                 <div className="space-y-1">
-                  <div className="text-5xl sm:text-6xl font-black tracking-tight font-mono text-white drop-shadow-md">
+                  <div className="text-4xl sm:text-6xl font-black tracking-tight font-mono text-white drop-shadow-md">
                     {String(elapsedHours).padStart(2, '0')}:{String(elapsedMins).padStart(2, '0')}:{String(elapsedSecs).padStart(2, '0')}
                   </div>
-                  <div className="flex items-center justify-center gap-3 text-xs text-neutral-300 font-medium">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 text-xs text-neutral-300 font-medium">
                     <span>เป้าหมาย: <strong className="text-white font-bold">{targetHours} ชม.</strong> ({progressPercent}%)</span>
                     {activeSession?.isActive && (
                       <span className="text-orange-300 font-bold">

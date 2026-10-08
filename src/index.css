@@ -206,3 +206,24 @@
 .line-spacing-spacious div {
   line-height: 1.8 !important;
 }
+
+/* =========================================================
+   7. Mobile Full-Screen Ergonomics & Zero Horizontal Overflow
+   ========================================================= */
+html, body, #root {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Hide horizontal scrollbar safely on all browsers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
