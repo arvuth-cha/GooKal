@@ -254,3 +254,25 @@ export async function calculateAINutritionGoals(params: NutritionGoalParams): Pr
 
   return localFallback;
 }
+
+/**
+ * ปัดเศษค่าสารอาหารให้มีทศนิยมไม่เกิน 1 ตำแหน่ง (e.g. 15.467 -> 15.5, 20.0 -> 20)
+ */
+export function roundNutrient(val: number | string | undefined | null): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const num = Number(val);
+  if (isNaN(num)) return 0;
+  return Math.round(num * 10) / 10;
+}
+
+/**
+ * จัดรูปแบบตัวเลขสารอาหารสำหรับแสดงผล โดยมีทศนิยมไม่เกิน 1 ตำแหน่งเสมอ
+ * เช่น 25 -> "25", 25.4 -> "25.4", 25.467 -> "25.5"
+ */
+export function formatNutrientValue(val: number | string | undefined | null): string {
+  if (val === undefined || val === null || val === '') return '0';
+  const num = Number(val);
+  if (isNaN(num)) return '0';
+  const rounded = Math.round(num * 10) / 10;
+  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+}

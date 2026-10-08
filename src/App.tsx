@@ -43,6 +43,7 @@ import { BioHackingInnovationsHub, InnovationCategory } from './components/healt
 import { AIMacroGoalCalculatorCard } from './components/account/AIMacroGoalCalculatorCard';
 import { CustomMealItem, OfflineFoodDatabaseItem } from './types/extendedFeatures';
 import { loadInventory, InventoryItem } from './utils/foodPantryStore';
+import { roundNutrient, formatNutrientValue } from './utils/aiNutritionCalculator';
 
 // 20 AI Innovation & Bio-Hack Modules
 import { GlucoseCrashPredictorModal } from './components/innovations/GlucoseCrashPredictorModal';
@@ -1213,11 +1214,11 @@ export default function App() {
     dinner: { label: 'มื้อเย็น', icon: Moon }
   };
 
-  const totalProtein = displayHistory.reduce((sum, item) => sum + (item.proteinGrams || 0), 0);
-  const totalCarbs = displayHistory.reduce((sum, item) => sum + (item.carbsGrams || 0), 0);
-  const totalFat = displayHistory.reduce((sum, item) => sum + (item.fatGrams || 0), 0);
-  const totalSugar = displayHistory.reduce((sum, item) => sum + (item.sugarGrams || 0), 0);
-  const totalSodium = displayHistory.reduce((sum, item) => sum + (item.sodiumMg || 0), 0);
+  const totalProtein = roundNutrient(displayHistory.reduce((sum, item) => sum + (Number(item.proteinGrams) || 0), 0));
+  const totalCarbs = roundNutrient(displayHistory.reduce((sum, item) => sum + (Number(item.carbsGrams) || 0), 0));
+  const totalFat = roundNutrient(displayHistory.reduce((sum, item) => sum + (Number(item.fatGrams) || 0), 0));
+  const totalSugar = roundNutrient(displayHistory.reduce((sum, item) => sum + (Number(item.sugarGrams) || 0), 0));
+  const totalSodium = roundNutrient(displayHistory.reduce((sum, item) => sum + (Number(item.sodiumMg) || 0), 0));
   const macroData = [
     { name: 'โปรตีน', value: totalProtein, color: '#3b82f6' },
     { name: 'คาร์บ', value: totalCarbs, color: '#f59e0b' },
@@ -1249,11 +1250,11 @@ export default function App() {
   const calculatedTdee = Math.round(bmr * actLevel);
   const tdee = userProfile.customTdee ?? (isNaN(calculatedTdee) || calculatedTdee <= 0 ? 2000 : calculatedTdee);
 
-  const carbsGoal = Math.max(1, userProfile.customMacros?.carbs ?? Math.round((safeDailyGoal * 0.5) / 4));
-  const proteinGoal = Math.max(1, userProfile.customMacros?.protein ?? Math.round((safeDailyGoal * 0.3) / 4));
-  const fatGoal = Math.max(1, userProfile.customMacros?.fat ?? Math.round((safeDailyGoal * 0.2) / 9));
-  const sugarGoal = Math.max(1, userProfile.customMacros?.sugar ?? 24);
-  const sodiumGoal = Math.max(1, userProfile.customMacros?.sodium ?? 2000);
+  const carbsGoal = roundNutrient(Math.max(1, userProfile.customMacros?.carbs ?? Math.round((safeDailyGoal * 0.5) / 4)));
+  const proteinGoal = roundNutrient(Math.max(1, userProfile.customMacros?.protein ?? Math.round((safeDailyGoal * 0.3) / 4)));
+  const fatGoal = roundNutrient(Math.max(1, userProfile.customMacros?.fat ?? Math.round((safeDailyGoal * 0.2) / 9)));
+  const sugarGoal = roundNutrient(Math.max(1, userProfile.customMacros?.sugar ?? 24));
+  const sodiumGoal = roundNutrient(Math.max(1, userProfile.customMacros?.sodium ?? 2000));
   const [showMacroEditor, setShowMacroEditor] = useState(false);
   const [editingMacros, setEditingMacros] = useState<{carbs: string | number, protein: string | number, fat: string | number, sugar: string | number, sodium: string | number}>({ carbs: carbsGoal, protein: proteinGoal, fat: fatGoal, sugar: sugarGoal, sodium: sodiumGoal });
 
@@ -1265,9 +1266,11 @@ export default function App() {
   }, [showMacroEditor, carbsGoal, proteinGoal, fatGoal, sugarGoal, sodiumGoal]);
 
   const handleSaveMacros = () => {
-    const p = Number(editingMacros.protein) || 0;
-    const c = Number(editingMacros.carbs) || 0;
-    const f = Number(editingMacros.fat) || 0;
+    const p = roundNutrient(editingMacros.protein);
+    const c = roundNutrient(editingMacros.carbs);
+    const f = roundNutrient(editingMacros.fat);
+    const s = roundNutrient(editingMacros.sugar);
+    const sod = roundNutrient(editingMacros.sodium);
     const calculatedTarget = Math.round((p * 4) + (c * 4) + (f * 9));
 
     const updated: UserProfile = {
@@ -1277,8 +1280,8 @@ export default function App() {
         carbs: c,
         protein: p,
         fat: f,
-        sugar: Number(editingMacros.sugar) || 0,
-        sodium: Number(editingMacros.sodium) || 0
+        sugar: s,
+        sodium: sod
       }
     };
     saveProfile(updated);
@@ -2883,7 +2886,7 @@ export default function App() {
                     <h2 className="text-base sm:text-lg font-bold text-neutral-900 shrink-0">สารอาหาร</h2>
                     {!isNutrientsCardOpen && (
                       <span className="text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600 truncate">
-                        P: {totalProtein}g • C: {totalCarbs}g • F: {totalFat}g
+                        P: {formatNutrientValue(totalProtein)}g • C: {formatNutrientValue(totalCarbs)}g • F: {formatNutrientValue(totalFat)}g
                       </span>
                     )}
                   </div>
@@ -2921,6 +2924,7 @@ export default function App() {
                         <label className="text-sm font-medium text-neutral-600 flex items-center gap-2"><span className="text-xl">🍞</span> คาร์บ</label>
                         <input 
                           type="number" 
+                          step="0.1"
                           value={editingMacros.carbs} 
                           onChange={(e) => setEditingMacros({...editingMacros, carbs: e.target.value})}
                           className="w-20 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-sm font-bold text-right outline-none focus:border-orange-500 pointer-events-auto"
@@ -2930,6 +2934,7 @@ export default function App() {
                         <label className="text-sm font-medium text-neutral-600 flex items-center gap-2"><span className="text-xl">🥩</span> โปรตีน</label>
                         <input 
                           type="number" 
+                          step="0.1"
                           value={editingMacros.protein} 
                           onChange={(e) => setEditingMacros({...editingMacros, protein: e.target.value})}
                           className="w-20 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-sm font-bold text-right outline-none focus:border-orange-500 pointer-events-auto"
@@ -2939,6 +2944,7 @@ export default function App() {
                         <label className="text-sm font-medium text-neutral-600 flex items-center gap-2"><span className="text-xl">🥑</span> ไขมัน</label>
                         <input 
                           type="number" 
+                          step="0.1"
                           value={editingMacros.fat} 
                           onChange={(e) => setEditingMacros({...editingMacros, fat: e.target.value})}
                           className="w-20 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-sm font-bold text-right outline-none focus:border-orange-500 pointer-events-auto"
@@ -2948,6 +2954,7 @@ export default function App() {
                         <label className="text-sm font-medium text-neutral-600 flex items-center gap-2"><span className="text-xl">🍭</span> น้ำตาล</label>
                         <input 
                           type="number" 
+                          step="0.1"
                           value={editingMacros.sugar} 
                           onChange={(e) => setEditingMacros({...editingMacros, sugar: e.target.value})}
                           className="w-20 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-sm font-bold text-right outline-none focus:border-orange-500 pointer-events-auto"
@@ -2957,6 +2964,7 @@ export default function App() {
                         <label className="text-sm font-medium text-neutral-600 flex items-center gap-2"><span className="text-xl">🧂</span> โซเดียม</label>
                         <input 
                           type="number" 
+                          step="0.1"
                           value={editingMacros.sodium} 
                           onChange={(e) => setEditingMacros({...editingMacros, sodium: e.target.value})}
                           className="w-20 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-sm font-bold text-right outline-none focus:border-orange-500 pointer-events-auto"
@@ -2980,178 +2988,288 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                <div className="w-full">
-                  <div className="grid grid-cols-3 gap-y-4 sm:gap-y-6 gap-x-1 sm:gap-x-2 w-full">
-                      {/* Carbs */}
+                <div className="w-full space-y-4">
+                  {/* สารอาหารหลัก 3 ชนิด (Macronutrients: Carbs, Protein, Fat) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2 px-0.5">
+                      <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                        สารอาหารหลัก (Macronutrients)
+                      </span>
+                      <span className="text-[10px] text-neutral-400 font-medium">
+                        (กรัม)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full">
+                      {/* 1. Carbs (คาร์บ) */}
                       {(() => {
-                        const goalVal = Math.max(1, carbsGoal || 1);
-                        const currentVal = Math.max(0, totalCarbs || 0);
+                        const goalVal = Math.max(1, roundNutrient(carbsGoal) || 1);
+                        const currentVal = Math.max(0, roundNutrient(totalCarbs));
                         const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
-                        const circumference = 2 * Math.PI * 30;
+                        const radius = 28;
+                        const circumference = 2 * Math.PI * radius;
                         const offset = circumference * (1 - ratio);
                         const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
                         const overOffset = circumference * (1 - overRatio);
+                        const isOver = currentVal > goalVal;
+
                         return (
-                          <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
-                                <circle cx="36" cy="36" r="30" stroke="#22c55e" strokeWidth="6" fill="transparent" 
+                          <div className="flex flex-col items-center flex-1 min-w-0">
+                            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mb-1.5 shrink-0 flex items-center justify-center">
+                              <svg viewBox="0 0 72 72" className="w-full h-full transform -rotate-90 block">
+                                <circle cx="36" cy="36" r={radius} stroke="#f3f4f6" strokeWidth="5" fill="transparent" />
+                                <circle 
+                                  cx="36" cy="36" r={radius} 
+                                  stroke="#22c55e" strokeWidth="5" fill="transparent" 
                                   strokeDasharray={circumference}
                                   strokeDashoffset={isNaN(offset) ? circumference : offset}
-                                  strokeLinecap="round" />
-                                {currentVal > goalVal && (
-                                  <circle cx="36" cy="36" r="30" stroke="#ef4444" strokeWidth="10" fill="transparent" 
+                                  strokeLinecap="round" 
+                                />
+                                {isOver && (
+                                  <circle 
+                                    cx="36" cy="36" r={radius} 
+                                    stroke="#ef4444" strokeWidth="6" fill="transparent" 
                                     strokeDasharray={circumference}
                                     strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
-                                    strokeLinecap="round" />
+                                    strokeLinecap="round" 
+                                  />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🍞</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl pointer-events-none select-none">
+                                🍞
+                              </div>
                             </div>
-                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">คาร์บ</span>
-                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-[11px] sm:text-xs text-neutral-500 mb-0.5 font-medium">คาร์บ</span>
+                            <span className={`text-[11px] sm:text-xs font-bold text-center leading-tight whitespace-nowrap ${isOver ? 'text-rose-600' : 'text-neutral-900'}`}>
+                              {formatNutrientValue(currentVal)} / {formatNutrientValue(goalVal)} ก.
+                            </span>
+                            {isOver && (
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                +{formatNutrientValue(currentVal - goalVal)}
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
                       
-                      {/* Protein */}
+                      {/* 2. Protein (โปรตีน) */}
                       {(() => {
-                        const goalVal = Math.max(1, proteinGoal || 1);
-                        const currentVal = Math.max(0, totalProtein || 0);
+                        const goalVal = Math.max(1, roundNutrient(proteinGoal) || 1);
+                        const currentVal = Math.max(0, roundNutrient(totalProtein));
                         const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
-                        const circumference = 2 * Math.PI * 30;
+                        const radius = 28;
+                        const circumference = 2 * Math.PI * radius;
                         const offset = circumference * (1 - ratio);
                         const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
                         const overOffset = circumference * (1 - overRatio);
+                        const isOver = currentVal > goalVal;
+
                         return (
-                          <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
-                                <circle cx="36" cy="36" r="30" stroke="#3b82f6" strokeWidth="6" fill="transparent" 
+                          <div className="flex flex-col items-center flex-1 min-w-0">
+                            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mb-1.5 shrink-0 flex items-center justify-center">
+                              <svg viewBox="0 0 72 72" className="w-full h-full transform -rotate-90 block">
+                                <circle cx="36" cy="36" r={radius} stroke="#f3f4f6" strokeWidth="5" fill="transparent" />
+                                <circle 
+                                  cx="36" cy="36" r={radius} 
+                                  stroke="#3b82f6" strokeWidth="5" fill="transparent" 
                                   strokeDasharray={circumference}
                                   strokeDashoffset={isNaN(offset) ? circumference : offset}
-                                  strokeLinecap="round" />
-                                {currentVal > goalVal && (
-                                  <circle cx="36" cy="36" r="30" stroke="#ef4444" strokeWidth="10" fill="transparent" 
+                                  strokeLinecap="round" 
+                                />
+                                {isOver && (
+                                  <circle 
+                                    cx="36" cy="36" r={radius} 
+                                    stroke="#ef4444" strokeWidth="6" fill="transparent" 
                                     strokeDasharray={circumference}
                                     strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
-                                    strokeLinecap="round" />
+                                    strokeLinecap="round" 
+                                  />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🥩</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl pointer-events-none select-none">
+                                🥩
+                              </div>
                             </div>
-                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">โปรตีน</span>
-                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
+                            <span className="text-[11px] sm:text-xs text-neutral-500 mb-0.5 font-medium">โปรตีน</span>
+                            <span className={`text-[11px] sm:text-xs font-bold text-center leading-tight whitespace-nowrap ${isOver ? 'text-rose-600' : 'text-neutral-900'}`}>
+                              {formatNutrientValue(currentVal)} / {formatNutrientValue(goalVal)} ก.
+                            </span>
+                            {isOver && (
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                +{formatNutrientValue(currentVal - goalVal)}
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
 
-                      {/* Fat */}
+                      {/* 3. Fat (ไขมัน) */}
                       {(() => {
-                        const goalVal = Math.max(1, fatGoal || 1);
-                        const currentVal = Math.max(0, totalFat || 0);
+                        const goalVal = Math.max(1, roundNutrient(fatGoal) || 1);
+                        const currentVal = Math.max(0, roundNutrient(totalFat));
                         const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
-                        const circumference = 2 * Math.PI * 30;
+                        const radius = 28;
+                        const circumference = 2 * Math.PI * radius;
                         const offset = circumference * (1 - ratio);
                         const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
                         const overOffset = circumference * (1 - overRatio);
+                        const isOver = currentVal > goalVal;
+
                         return (
-                          <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
-                                <circle cx="36" cy="36" r="30" stroke="#eab308" strokeWidth="6" fill="transparent" 
+                          <div className="flex flex-col items-center flex-1 min-w-0">
+                            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mb-1.5 shrink-0 flex items-center justify-center">
+                              <svg viewBox="0 0 72 72" className="w-full h-full transform -rotate-90 block">
+                                <circle cx="36" cy="36" r={radius} stroke="#f3f4f6" strokeWidth="5" fill="transparent" />
+                                <circle 
+                                  cx="36" cy="36" r={radius} 
+                                  stroke="#eab308" strokeWidth="5" fill="transparent" 
                                   strokeDasharray={circumference}
                                   strokeDashoffset={isNaN(offset) ? circumference : offset}
-                                  strokeLinecap="round" />
-                                {currentVal > goalVal && (
-                                  <circle cx="36" cy="36" r="30" stroke="#ef4444" strokeWidth="10" fill="transparent" 
+                                  strokeLinecap="round" 
+                                />
+                                {isOver && (
+                                  <circle 
+                                    cx="36" cy="36" r={radius} 
+                                    stroke="#ef4444" strokeWidth="6" fill="transparent" 
                                     strokeDasharray={circumference}
                                     strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
-                                    strokeLinecap="round" />
+                                    strokeLinecap="round" 
+                                  />
                                 )}
                               </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🧀</div>
+                              <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl pointer-events-none select-none">
+                                🧀
+                              </div>
                             </div>
-                            <span className="text-xs sm:text-sm text-neutral-500 mb-0.5">ไขมัน</span>
-                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
-                          </div>
-                        );
-                      })()}
-                    
-                      {/* Sugar */}
-                      {(() => {
-                        const goalVal = Math.max(1, sugarGoal || 1);
-                        const currentVal = Math.max(0, totalSugar || 0);
-                        const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
-                        const circumference = 2 * Math.PI * 30;
-                        const offset = circumference * (1 - ratio);
-                        const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
-                        const overOffset = circumference * (1 - overRatio);
-                        return (
-                          <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
-                                <circle cx="36" cy="36" r="30" stroke="#ec4899" strokeWidth="6" fill="transparent" 
-                                  strokeDasharray={circumference}
-                                  strokeDashoffset={isNaN(offset) ? circumference : offset}
-                                  strokeLinecap="round" />
-                                {currentVal > goalVal && (
-                                  <circle cx="36" cy="36" r="30" stroke="#ef4444" strokeWidth="10" fill="transparent" 
-                                    strokeDasharray={circumference}
-                                    strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
-                                    strokeLinecap="round" />
-                                )}
-                              </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🍭</div>
-                            </div>
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <span className="text-xs sm:text-sm text-neutral-500">น้ำตาล</span>
-                            </div>
-                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} ก.</span>
-                          </div>
-                        );
-                      })()}
-                      
-                      {/* Sodium */}
-                      {(() => {
-                        const goalVal = Math.max(1, sodiumGoal || 1);
-                        const currentVal = Math.max(0, totalSodium || 0);
-                        const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
-                        const circumference = 2 * Math.PI * 30;
-                        const offset = circumference * (1 - ratio);
-                        const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
-                        const overOffset = circumference * (1 - overRatio);
-                        return (
-                          <div className="flex flex-col items-center flex-1">
-                            <div className="relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] mb-2 sm:mb-3">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="36" cy="36" r="30" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
-                                <circle cx="36" cy="36" r="30" stroke="#14b8a6" strokeWidth="6" fill="transparent" 
-                                  strokeDasharray={circumference}
-                                  strokeDashoffset={isNaN(offset) ? circumference : offset}
-                                  strokeLinecap="round" />
-                                {currentVal > goalVal && (
-                                  <circle cx="36" cy="36" r="30" stroke="#ef4444" strokeWidth="10" fill="transparent" 
-                                    strokeDasharray={circumference}
-                                    strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
-                                    strokeLinecap="round" />
-                                )}
-                              </svg>
-                              <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl">🧂</div>
-                            </div>
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <span className="text-xs sm:text-sm text-neutral-500">โซเดียม</span>
-                            </div>
-                            <span className="text-xs sm:text-sm font-bold text-neutral-900 text-center">{currentVal} / {goalVal} มก.</span>
+                            <span className="text-[11px] sm:text-xs text-neutral-500 mb-0.5 font-medium">ไขมัน</span>
+                            <span className={`text-[11px] sm:text-xs font-bold text-center leading-tight whitespace-nowrap ${isOver ? 'text-rose-600' : 'text-neutral-900'}`}>
+                              {formatNutrientValue(currentVal)} / {formatNutrientValue(goalVal)} ก.
+                            </span>
+                            {isOver && (
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                +{formatNutrientValue(currentVal - goalVal)}
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
                     </div>
                   </div>
+
+                  {/* สารอาหารที่ควรควบคุม (Sugar & Sodium) */}
+                  <div className="pt-3 border-t border-neutral-100">
+                    <div className="flex items-center justify-between mb-2 px-0.5">
+                      <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                        สารอาหารที่ควรควบคุม (Sugar & Sodium)
+                      </span>
+                      <span className="text-[10px] text-neutral-400 font-medium">
+                        (ไม่ควรเกินเป้าหมาย)
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-8 sm:gap-16 w-full">
+                      {/* 4. Sugar (น้ำตาล) */}
+                      {(() => {
+                        const goalVal = Math.max(1, roundNutrient(sugarGoal) || 1);
+                        const currentVal = Math.max(0, roundNutrient(totalSugar));
+                        const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
+                        const radius = 28;
+                        const circumference = 2 * Math.PI * radius;
+                        const offset = circumference * (1 - ratio);
+                        const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
+                        const overOffset = circumference * (1 - overRatio);
+                        const isOver = currentVal > goalVal;
+
+                        return (
+                          <div className="flex flex-col items-center flex-1 max-w-[140px] min-w-0">
+                            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mb-1.5 shrink-0 flex items-center justify-center">
+                              <svg viewBox="0 0 72 72" className="w-full h-full transform -rotate-90 block">
+                                <circle cx="36" cy="36" r={radius} stroke="#f3f4f6" strokeWidth="5" fill="transparent" />
+                                <circle 
+                                  cx="36" cy="36" r={radius} 
+                                  stroke="#ec4899" strokeWidth="5" fill="transparent" 
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={isNaN(offset) ? circumference : offset}
+                                  strokeLinecap="round" 
+                                />
+                                {isOver && (
+                                  <circle 
+                                    cx="36" cy="36" r={radius} 
+                                    stroke="#ef4444" strokeWidth="6" fill="transparent" 
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
+                                    strokeLinecap="round" 
+                                  />
+                                )}
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl pointer-events-none select-none">
+                                🍭
+                              </div>
+                            </div>
+                            <span className="text-[11px] sm:text-xs text-neutral-500 mb-0.5 font-medium">น้ำตาล</span>
+                            <span className={`text-[11px] sm:text-xs font-bold text-center leading-tight whitespace-nowrap ${isOver ? 'text-rose-600' : 'text-neutral-900'}`}>
+                              {formatNutrientValue(currentVal)} / {formatNutrientValue(goalVal)} ก.
+                            </span>
+                            {isOver && (
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                +{formatNutrientValue(currentVal - goalVal)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* 5. Sodium (โซเดียม) */}
+                      {(() => {
+                        const goalVal = Math.max(1, roundNutrient(sodiumGoal) || 1);
+                        const currentVal = Math.max(0, roundNutrient(totalSodium));
+                        const ratio = Math.min(1, Math.max(0, currentVal / goalVal));
+                        const radius = 28;
+                        const circumference = 2 * Math.PI * radius;
+                        const offset = circumference * (1 - ratio);
+                        const overRatio = currentVal > goalVal ? Math.min(1, (currentVal - goalVal) / goalVal) : 0;
+                        const overOffset = circumference * (1 - overRatio);
+                        const isOver = currentVal > goalVal;
+
+                        return (
+                          <div className="flex flex-col items-center flex-1 max-w-[140px] min-w-0">
+                            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mb-1.5 shrink-0 flex items-center justify-center">
+                              <svg viewBox="0 0 72 72" className="w-full h-full transform -rotate-90 block">
+                                <circle cx="36" cy="36" r={radius} stroke="#f3f4f6" strokeWidth="5" fill="transparent" />
+                                <circle 
+                                  cx="36" cy="36" r={radius} 
+                                  stroke="#14b8a6" strokeWidth="5" fill="transparent" 
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={isNaN(offset) ? circumference : offset}
+                                  strokeLinecap="round" 
+                                />
+                                {isOver && (
+                                  <circle 
+                                    cx="36" cy="36" r={radius} 
+                                    stroke="#ef4444" strokeWidth="6" fill="transparent" 
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={isNaN(overOffset) ? circumference : overOffset}
+                                    strokeLinecap="round" 
+                                  />
+                                )}
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl pointer-events-none select-none">
+                                🧂
+                              </div>
+                            </div>
+                            <span className="text-[11px] sm:text-xs text-neutral-500 mb-0.5 font-medium">โซเดียม</span>
+                            <span className={`text-[11px] sm:text-xs font-bold text-center leading-tight whitespace-nowrap ${isOver ? 'text-rose-600' : 'text-neutral-900'}`}>
+                              {formatNutrientValue(currentVal)} / {formatNutrientValue(goalVal)} มก.
+                            </span>
+                            {isOver && (
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.2 rounded-full mt-0.5">
+                                +{formatNutrientValue(currentVal - goalVal)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
                 )}
                     </motion.div>
                   )}
@@ -3228,11 +3346,11 @@ export default function App() {
                                   </span>
                                 </div>
                                 <div className="flex gap-3 text-xs font-medium text-neutral-500">
-                                  <span>คาร์บ {meal.carbsGrams}g</span>
+                                  <span>คาร์บ {formatNutrientValue(meal.carbsGrams)}g</span>
                                   <span>•</span>
-                                  <span>โปรตีน {meal.proteinGrams}g</span>
+                                  <span>โปรตีน {formatNutrientValue(meal.proteinGrams)}g</span>
                                   <span>•</span>
-                                  <span>ไขมัน {meal.fatGrams}g</span>
+                                  <span>ไขมัน {formatNutrientValue(meal.fatGrams)}g</span>
                                 </div>
                                 <p className="text-sm text-neutral-600 bg-white p-3 rounded-xl border border-neutral-100">
                                   {meal.explanation}
@@ -4594,11 +4712,11 @@ export default function App() {
                                           <div className="flex items-center gap-1.5 mt-1 text-[11px] text-neutral-500 flex-wrap">
                                             <span className="font-bold text-orange-600">{meal.calories} kcal</span>
                                             <span className="text-neutral-300">•</span>
-                                            <span>P: {meal.proteinGrams}g</span>
+                                            <span>P: {formatNutrientValue(meal.proteinGrams)}g</span>
                                             <span className="text-neutral-300">•</span>
-                                            <span>C: {meal.carbsGrams}g</span>
+                                            <span>C: {formatNutrientValue(meal.carbsGrams)}g</span>
                                             <span className="text-neutral-300">•</span>
-                                            <span>F: {meal.fatGrams}g</span>
+                                            <span>F: {formatNutrientValue(meal.fatGrams)}g</span>
                                           </div>
                                         </div>
                                       </div>
@@ -5172,18 +5290,18 @@ export default function App() {
                 <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-neutral-100">
                   <div className="bg-emerald-50/70 p-2.5 rounded-2xl border border-emerald-100">
                     <span className="text-[10px] font-bold text-emerald-700 block">🍞 คาร์บ</span>
-                    <span className="text-sm font-black text-emerald-900">{totalCarbs}g</span>
-                    <span className="text-[10px] text-emerald-600 font-medium block">/ {carbsGoal}g</span>
+                    <span className="text-sm font-black text-emerald-900">{formatNutrientValue(totalCarbs)}g</span>
+                    <span className="text-[10px] text-emerald-600 font-medium block">/ {formatNutrientValue(carbsGoal)}g</span>
                   </div>
                   <div className="bg-blue-50/70 p-2.5 rounded-2xl border border-blue-100">
                     <span className="text-[10px] font-bold text-blue-700 block">🥩 โปรตีน</span>
-                    <span className="text-sm font-black text-blue-900">{totalProtein}g</span>
-                    <span className="text-[10px] text-blue-600 font-medium block">/ {proteinGoal}g</span>
+                    <span className="text-sm font-black text-blue-900">{formatNutrientValue(totalProtein)}g</span>
+                    <span className="text-[10px] text-blue-600 font-medium block">/ {formatNutrientValue(proteinGoal)}g</span>
                   </div>
                   <div className="bg-amber-50/70 p-2.5 rounded-2xl border border-amber-100">
                     <span className="text-[10px] font-bold text-amber-700 block">🥑 ไขมัน</span>
-                    <span className="text-sm font-black text-amber-900">{totalFat}g</span>
-                    <span className="text-[10px] text-amber-600 font-medium block">/ {fatGoal}g</span>
+                    <span className="text-sm font-black text-amber-900">{formatNutrientValue(totalFat)}g</span>
+                    <span className="text-[10px] text-amber-600 font-medium block">/ {formatNutrientValue(fatGoal)}g</span>
                   </div>
                 </div>
               </div>
@@ -5354,7 +5472,7 @@ export default function App() {
                                     <div className="flex items-center gap-2 mt-1">
                                       <span className="text-xs font-bold text-orange-600">{item.calories} kcal</span>
                                       <span className="text-[10px] text-neutral-300">•</span>
-                                      <span className="text-[11px] font-medium text-neutral-500">P:{item.proteinGrams}g C:{item.carbsGrams}g F:{item.fatGrams}g</span>
+                                      <span className="text-[11px] font-medium text-neutral-500">P:{formatNutrientValue(item.proteinGrams)}g C:{formatNutrientValue(item.carbsGrams)}g F:{formatNutrientValue(item.fatGrams)}g</span>
                                     </div>
                                     <div className="mt-1.5">
                                       <NutritionSafetyBadge

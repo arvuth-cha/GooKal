@@ -48,6 +48,7 @@ import {
   clearWaterLogsForDate,
 } from '../../utils/waterService';
 import { formatDateDMY, formatDateDMYShort, formatFullThaiDate } from '../../utils/dateUtils';
+import { formatNutrientValue } from '../../utils/aiNutritionCalculator';
 
 export interface HistoryMealItem {
   id: string;
@@ -794,7 +795,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
         grade: rawData.grade || (rawData.overallScore >= 90 ? 'A+' : rawData.overallScore >= 80 ? 'A' : rawData.overallScore >= 70 ? 'B' : rawData.overallScore >= 60 ? 'C+' : 'B'),
         verdict: rawData.verdict || rawData.verdictTitle || `ผลการประเมินโภชนาการประจำวันที่ ${thaiDateLabel} เสร็จสมบูรณ์`,
         calorieStatus: rawData.calorieStatus || (cals > 0 ? `${cals} / ${activeCalorieTarget} kcal` : 'ยังไม่บันทึกแคลอรี'),
-        proteinStatus: rawData.proteinStatus || (p > 0 ? `${p} / ${activeProteinTarget}g` : 'ยังไม่บันทึกโปรตีน'),
+        proteinStatus: rawData.proteinStatus || (p > 0 ? `${formatNutrientValue(p)} / ${formatNutrientValue(activeProteinTarget)}g` : 'ยังไม่บันทึกโปรตีน'),
         strengths: Array.isArray(rawData.strengths) && rawData.strengths.length > 0 ? rawData.strengths : ['มีการติดตามและบันทึกโภชนาการอย่างต่อเนื่อง'],
         improvements: Array.isArray(rawData.improvements) && rawData.improvements.length > 0 ? rawData.improvements : ['รักษาสมดุลการดื่มน้ำและทานผักเพื่อเสริมใยอาหาร'],
         actionPlanForTomorrow: Array.isArray(rawData.actionPlanForTomorrow) && rawData.actionPlanForTomorrow.length > 0
@@ -826,11 +827,11 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
       let calculatedProteinStatus = 'ยังไม่บันทึกโปรตีน';
       if (p > 0) {
         if (isProteinExcess) {
-          calculatedProteinStatus = `โปรตีนสูงกว่าเป้าหมาย (${p}g / ${activeProteinTarget}g)`;
+          calculatedProteinStatus = `โปรตีนสูงกว่าเป้าหมาย (${formatNutrientValue(p)}g / ${formatNutrientValue(activeProteinTarget)}g)`;
         } else if (isProteinMet) {
-          calculatedProteinStatus = `โปรตีนถึงเป้าหมายยอดเยี่ยม (${p}g / ${activeProteinTarget}g)`;
+          calculatedProteinStatus = `โปรตีนถึงเป้าหมายยอดเยี่ยม (${formatNutrientValue(p)}g / ${formatNutrientValue(activeProteinTarget)}g)`;
         } else {
-          calculatedProteinStatus = `ควรเพิ่มโปรตีนอีก ${Math.max(0, activeProteinTarget - p)}g (${p}g / ${activeProteinTarget}g)`;
+          calculatedProteinStatus = `ควรเพิ่มโปรตีนอีก ${formatNutrientValue(Math.max(0, activeProteinTarget - p))}g (${formatNutrientValue(p)}g / ${formatNutrientValue(activeProteinTarget)}g)`;
         }
       }
 
@@ -851,14 +852,14 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
         ] : ['เริ่มต้นบันทึกมื้ออาหารเพื่อผลลัพธ์ที่ดีขึ้น'],
         improvements: hasMeals ? [
           !isProteinMet 
-            ? `เพิ่มแหล่งโปรตีนลีน เช่น ไข่ต้ม อกไก่ หรือเต้าหู้ อีก ${Math.max(0, activeProteinTarget - p)}g` 
+            ? `เพิ่มแหล่งโปรตีนลีน เช่น ไข่ต้ม อกไก่ หรือเต้าหู้ อีก ${formatNutrientValue(Math.max(0, activeProteinTarget - p))}g` 
             : 'เน้นเพิ่มใยอาหารจากผักสดและผลไม้น้ำตาลต่ำเพื่อระบบขับถ่าย',
           cals > activeCalorieTarget ? 'ระวังน้ำมันที่ใช้ผัดหรือน้ำตาลแฝงในเครื่องดื่ม' : 'หลีกเลี่ยงการปล่อยให้ร่างกายหิวจนโหย'
         ] : ['บันทึกมื้ออาหารในแต่ละวันเพื่อการประเมินที่แม่นยำ'],
         actionPlanForTomorrow: [
           isProteinMet 
-            ? `1. รักษาสมดุลการเลือกโปรตีนคุณภาพดี (${activeProteinTarget}g) อย่างสม่ำเสมอ`
-            : `1. เติมโปรตีนลีนในแต่ละมื้อให้ถึงเป้าหมาย ${activeProteinTarget}g ต่อวัน`,
+            ? `1. รักษาสมดุลการเลือกโปรตีนคุณภาพดี (${formatNutrientValue(activeProteinTarget)}g) อย่างสม่ำเสมอ`
+            : `1. เติมโปรตีนลีนในแต่ละมื้อให้ถึงเป้าหมาย ${formatNutrientValue(activeProteinTarget)}g ต่อวัน`,
           `2. ดื่มน้ำให้เพียงพอ ${customGoals.waterTarget || 8} แก้วต่อวันเพื่อกระตุ้นระบบเผาผลาญ`,
           `3. พักผ่อนให้เต็มที่ ${customGoals.sleepTarget || 7.5} ชั่วโมงเพื่อคืนความสดชื่นให้กล้ามเนื้อ`
         ],
@@ -991,7 +992,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
               <span className="text-[10px] text-sky-300 font-normal">กำหนดเอง</span>
             </span>
             <span className="font-extrabold text-sky-400 text-sm">
-              {todayProtein} / {activeProteinTarget}g
+              {formatNutrientValue(todayProtein)} / {formatNutrientValue(activeProteinTarget)}g
             </span>
           </div>
           <div 
@@ -1123,7 +1124,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
                 🔥 โควตา: {activeCalorieTarget} kcal (เหลือ {Math.max(0, activeCalorieTarget - (todayCalories || 0))} kcal)
               </span>
               <span className="bg-white/90 border border-sky-200 text-sky-800 px-2 py-0.5 rounded-lg font-bold">
-                🥩 โปรตีน: {activeProteinTarget}g (ขาดอีก {Math.max(0, activeProteinTarget - (todayProtein || 0))}g)
+                🥩 โปรตีน: {formatNutrientValue(activeProteinTarget)}g (ขาดอีก {formatNutrientValue(Math.max(0, activeProteinTarget - (todayProtein || 0)))}g)
               </span>
               <span className="bg-white/90 border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-lg font-medium">
                 ⚖️ เป้าหมาย: {bodyStats.targetWeight} กก.
@@ -1158,7 +1159,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
                   <div className="bg-neutral-50 p-2.5 rounded-lg border border-neutral-200/70 space-y-1">
                     <div className="text-neutral-500 font-semibold">สถานะโควตาสารอาหารวันนี้</div>
                     <div>• แคลอรี: ทาน <b>{todayCalories || 0}</b> / <b>{activeCalorieTarget} kcal</b> (เหลือโควตา <b>{Math.max(0, activeCalorieTarget - (todayCalories || 0))} kcal</b>)</div>
-                    <div>• โปรตีน: ทาน <b>{todayProtein || 0}</b> / <b>{activeProteinTarget}g</b> (ยังขาดอีก <b>{Math.max(0, activeProteinTarget - (todayProtein || 0))}g</b>)</div>
+                    <div>• โปรตีน: ทาน <b>{formatNutrientValue(todayProtein)}</b> / <b>{formatNutrientValue(activeProteinTarget)}g</b> (ยังขาดอีก <b>{formatNutrientValue(Math.max(0, activeProteinTarget - (todayProtein || 0)))}g</b>)</div>
                     <div>• เงื่อนไข: <b>{customGoals.ifWindow && customGoals.ifWindow !== 'none' ? customGoals.ifWindow : 'IF 18/6'}</b> | <b>{customGoals.dietaryRestrictions || 'งดน้ำตาล (Zero Sugar)'}</b></div>
                   </div>
                 </div>
@@ -1198,7 +1199,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
                 className="bg-white hover:bg-orange-50 hover:border-orange-200 border border-neutral-200/80 px-3 py-2 rounded-2xl text-xs font-medium text-neutral-800 whitespace-nowrap shadow-2xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
               >
                 <span>🥩</span>
-                <span>แนะนำเมนูโปรตีนสูงให้ถึงเป้าหมาย {activeProteinTarget}g</span>
+                <span>แนะนำเมนูโปรตีนสูงให้ถึงเป้าหมาย {formatNutrientValue(activeProteinTarget)}g</span>
               </button>
               <button
                 onClick={() => handleSendMessage(`ช่วงนี้ทำ IF อยู่ ถ้าเริ่มหิวระหว่าง Fasting ดื่มหรือทานอะไรที่ไม่หลุด Fast ได้บ้าง`)}
@@ -1503,7 +1504,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
                   มื้ออาหารที่บันทึกไว้ในวันที่นี้ ({selectedDateMeals.length} รายการ):
                 </span>
                 <span className="text-[11px] font-bold text-neutral-600">
-                  รวม: <span className="text-orange-600 font-black">{(selectedDateMeals || []).reduce((s, m) => s + (m?.calories || 0), 0)} kcal</span> (P:{(selectedDateMeals || []).reduce((s, m) => s + (m?.proteinGrams || 0), 0)}g C:{(selectedDateMeals || []).reduce((s, m) => s + (m?.carbsGrams || 0), 0)}g F:{(selectedDateMeals || []).reduce((s, m) => s + (m?.fatGrams || 0), 0)}g)
+                  รวม: <span className="text-orange-600 font-black">{(selectedDateMeals || []).reduce((s, m) => s + (m?.calories || 0), 0)} kcal</span> (P:{formatNutrientValue((selectedDateMeals || []).reduce((s, m) => s + (m?.proteinGrams || 0), 0))}g C:{formatNutrientValue((selectedDateMeals || []).reduce((s, m) => s + (m?.carbsGrams || 0), 0))}g F:{formatNutrientValue((selectedDateMeals || []).reduce((s, m) => s + (m?.fatGrams || 0), 0))}g)
                 </span>
               </div>
 
@@ -1518,7 +1519,7 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
                     <div key={meal.id} className="bg-white p-3 rounded-xl border border-neutral-200/80 flex items-center justify-between shadow-2xs">
                       <div>
                         <span className="font-bold text-neutral-900 block">{meal.foodName}</span>
-                        <span className="text-[11px] text-neutral-500">มื้อ: {meal.mealType} • โปรตีน {meal.proteinGrams}g</span>
+                        <span className="text-[11px] text-neutral-500">มื้อ: {meal.mealType} • โปรตีน {formatNutrientValue(meal.proteinGrams)}g</span>
                       </div>
                       <span className="font-extrabold text-orange-600 text-xs bg-orange-50 px-2.5 py-1 rounded-lg">
                         {meal.calories} kcal
