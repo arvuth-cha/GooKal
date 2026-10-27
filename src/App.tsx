@@ -464,6 +464,16 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const profilePicInputRef = useRef<HTMLInputElement>(null);
+  const mainScrollRef = useRef<HTMLElement>(null);
+
+  const scrollToScanTop = () => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
 
   const handleProfilePicSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1139,7 +1149,23 @@ export default function App() {
     setPortionMultiplier(1.0);
     stopSpeaking();
     setIsSpeakingResult(false);
+    scrollToScanTop();
   };
+
+  // Always scroll to top when entering the AI Food Analysis page
+  useEffect(() => {
+    if (activeTab === 'scan') {
+      scrollToScanTop();
+      const raf1 = requestAnimationFrame(() => {
+        scrollToScanTop();
+        const raf2 = requestAnimationFrame(() => {
+          scrollToScanTop();
+        });
+        return () => cancelAnimationFrame(raf2);
+      });
+      return () => cancelAnimationFrame(raf1);
+    }
+  }, [activeTab]);
 
   const isSameDay = (d1: Date, d2: Date) => d1.toDateString() === d2.toDateString();
   const getLocalISODate = (date: Date) => {
@@ -2287,7 +2313,7 @@ export default function App() {
       <div className={`w-full ${activeTab === 'crm' || activeTab === 'recipes' ? 'max-w-4xl' : 'max-w-md'} h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl sm:shadow-orange-900/10 sm:ring-8 ring-white/50 relative overflow-hidden flex flex-col transition-all duration-300 max-w-full`}>
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-50/50 pb-24 relative w-full max-w-full">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-50/50 pb-24 relative w-full max-w-full">
           {/* Offline Mode Banner */}
           {!isOnline && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-amber-900 text-xs font-semibold shrink-0 animate-in slide-in-from-top duration-300">
