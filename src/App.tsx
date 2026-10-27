@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe } from 'lucide-react';
+import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import { ExportInsightsModal } from './components/ExportInsightsModal';
@@ -830,7 +830,9 @@ export default function App() {
     playSuccessChime();
     triggerHaptic([30, 50]);
     stopSpeaking();
-    showToast(`✨ บันทึกเมนู "${finalResult.foodName}" (${finalResult.calories} kcal) เรียบร้อย!`);
+    const isPastLog = !isSameDay(selectedDate, new Date());
+    const dateNotice = isPastLog ? ` สำหรับวันที่ ${formatDateDMY(selectedDate)}` : '';
+    showToast(`✨ บันทึกเมนู "${finalResult.foodName}" (${finalResult.calories} kcal)${dateNotice} เรียบร้อย!`);
     resetApp();
     setActiveTab('history');
   };
@@ -2217,6 +2219,69 @@ export default function App() {
     }
   };
 
+  const renderPast7DaysStrip = (compact: boolean = false) => {
+    return (
+      <div className="flex gap-1 sm:gap-1.5 w-full justify-between items-center">
+        {past7Days.map((date, i) => {
+          const isSelected = isSameDay(date, selectedDate);
+          const isToday = isSameDay(date, new Date());
+          
+          const dayHistory = (history || []).filter(item => isSameDay(new Date(item.date), date));
+          const carbsGrams = dayHistory.reduce((sum, item) => sum + (item?.carbsGrams || 0), 0);
+          const proteinGrams = dayHistory.reduce((sum, item) => sum + (item?.proteinGrams || 0), 0);
+          const fatGrams = dayHistory.reduce((sum, item) => sum + (item?.fatGrams || 0), 0);
+          const totalMacros = carbsGrams + proteinGrams + fatGrams;
+          const carbsPct = totalMacros > 0 ? (carbsGrams / totalMacros) * 100 : 0;
+          const proteinPct = totalMacros > 0 ? (proteinGrams / totalMacros) * 100 : 0;
+          const fatPct = totalMacros > 0 ? (fatGrams / totalMacros) * 100 : 0;
+
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setSelectedDate(date);
+                setDiaryCalendarMonth(date);
+              }}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center ${compact ? 'py-1.5 sm:py-2' : 'py-2 sm:py-2.5'} px-0.5 rounded-2xl transition-all shadow-2xs cursor-pointer ${
+                isSelected 
+                  ? 'bg-orange-500 text-white ring-2 ring-orange-500 ring-offset-1 ring-offset-neutral-50 scale-[1.02]' 
+                  : 'bg-white text-neutral-500 border border-neutral-100 hover:bg-neutral-50 active:scale-95'
+              }`}
+              title={`เลือกวันที่ ${formatDateDMY(date)}`}
+            >
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase mb-0.5 sm:mb-1">
+                {date?.toLocaleDateString('th-TH', { weekday: 'short' })}
+              </span>
+              <div className="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-0.5">
+                <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                  {totalMacros > 0 ? (
+                    <>
+                      {/* Carbs */}
+                      <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#22c55e" strokeWidth="3.5" strokeDasharray={`${carbsPct} 100`} strokeDashoffset="0" />
+                      {/* Protein */}
+                      <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#3b82f6" strokeWidth="3.5" strokeDasharray={`${proteinPct} 100`} strokeDashoffset={`-${carbsPct}`} />
+                      {/* Fat */}
+                      <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#fbbf24" strokeWidth="3.5" strokeDasharray={`${fatPct} 100`} strokeDashoffset={`-${carbsPct + proteinPct}`} />
+                    </>
+                  ) : (
+                    <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke={isSelected ? "rgba(255,255,255,0.3)" : "#f5f5f5"} strokeWidth="3.5" />
+                  )}
+                </svg>
+                <span className={`relative text-xs sm:text-sm font-black ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
+                  {date.getDate()}
+                </span>
+              </div>
+              {isToday && (
+                <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-orange-500'}`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100 text-neutral-800 font-sans sm:p-4 md:p-8 flex items-center justify-center overflow-x-hidden w-full max-w-full">
       <div className={`w-full ${activeTab === 'crm' || activeTab === 'recipes' ? 'max-w-4xl' : 'max-w-md'} h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl sm:shadow-orange-900/10 sm:ring-8 ring-white/50 relative overflow-hidden flex flex-col transition-all duration-300 max-w-full`}>
@@ -2402,59 +2467,7 @@ export default function App() {
               </div>
 
               {/* 7 Days Strip */}
-              <div className="flex gap-1 sm:gap-1.5 w-full justify-between items-center">
-                {past7Days.map((date, i) => {
-                  const isSelected = isSameDay(date, selectedDate);
-                  const isToday = isSameDay(date, new Date());
-                  
-                  const dayHistory = (history || []).filter(item => isSameDay(new Date(item.date), date));
-                  const carbsGrams = dayHistory.reduce((sum, item) => sum + (item?.carbsGrams || 0), 0);
-                  const proteinGrams = dayHistory.reduce((sum, item) => sum + (item?.proteinGrams || 0), 0);
-                  const fatGrams = dayHistory.reduce((sum, item) => sum + (item?.fatGrams || 0), 0);
-                  const totalMacros = carbsGrams + proteinGrams + fatGrams;
-                  const carbsPct = totalMacros > 0 ? (carbsGrams / totalMacros) * 100 : 0;
-                  const proteinPct = totalMacros > 0 ? (proteinGrams / totalMacros) * 100 : 0;
-                  const fatPct = totalMacros > 0 ? (fatGrams / totalMacros) * 100 : 0;
-
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedDate(date)}
-                      className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 rounded-2xl transition-all shadow-2xs ${
-                        isSelected 
-                          ? 'bg-orange-500 text-white ring-2 ring-orange-500 ring-offset-1 ring-offset-neutral-50 scale-[1.02]' 
-                          : 'bg-white text-neutral-500 border border-neutral-100 hover:bg-neutral-50 active:scale-95'
-                      }`}
-                    >
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase mb-0.5 sm:mb-1">
-                        {date?.toLocaleDateString('th-TH', { weekday: 'short' })}
-                      </span>
-                      <div className="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-0.5">
-                        <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                          {totalMacros > 0 ? (
-                            <>
-                              {/* Carbs */}
-                              <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#22c55e" strokeWidth="3.5" strokeDasharray={`${carbsPct} 100`} strokeDashoffset="0" />
-                              {/* Protein */}
-                              <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#3b82f6" strokeWidth="3.5" strokeDasharray={`${proteinPct} 100`} strokeDashoffset={`-${carbsPct}`} />
-                              {/* Fat */}
-                              <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#fbbf24" strokeWidth="3.5" strokeDasharray={`${fatPct} 100`} strokeDashoffset={`-${carbsPct + proteinPct}`} />
-                            </>
-                          ) : (
-                            <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke={isSelected ? "rgba(255,255,255,0.3)" : "#f5f5f5"} strokeWidth="3.5" />
-                          )}
-                        </svg>
-                        <span className={`relative text-xs sm:text-base font-black ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
-                          {date.getDate()}
-                        </span>
-                      </div>
-                      {isToday && (
-                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-orange-500'}`} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {renderPast7DaysStrip()}
 
               {/* Dashboard Master Collapse/Expand Toolbar */}
               <div className="flex items-center justify-between px-3 py-1.5 bg-neutral-100/80 rounded-2xl border border-neutral-200/60 text-xs font-bold text-neutral-600">
@@ -4424,7 +4437,67 @@ export default function App() {
           )}
 
           {activeTab === 'scan' && (
-            <div className="p-6 min-h-full flex flex-col animate-in fade-in duration-300">
+            <div className="p-3.5 sm:p-6 min-h-full flex flex-col animate-in fade-in duration-300 relative w-full max-w-full overflow-x-hidden">
+              
+              {/* 📅 7-Days Past Calendar Bar for AI Food Logging */}
+              <div className="bg-white rounded-3xl p-3 sm:p-4 shadow-sm border border-neutral-100 mb-4 w-full">
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0">
+                      <Calendar size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-neutral-800">บันทึกอาหารสำหรับ:</span>
+                        <span className="text-xs font-black text-orange-600">
+                          {isSameDay(selectedDate, new Date()) ? 'วันนี้' : formatDateDMYShort(selectedDate)}
+                        </span>
+                        {!isSameDay(selectedDate, new Date()) ? (
+                          <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Clock size={10} />
+                            <span>ย้อนหลัง</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                            วันนี้
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-neutral-400 font-medium truncate">
+                        {formatFullThaiDate(selectedDate, true)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Date Picker Button for Past Custom Dates */}
+                  <div className="relative shrink-0">
+                    <div className="flex items-center gap-1 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 rounded-xl px-2.5 py-1.5 cursor-pointer transition-colors shadow-2xs">
+                      <Calendar size={13} className="text-orange-500" />
+                      <span className="text-xs font-bold text-neutral-700">
+                        {formatDateDMY(selectedDate)}
+                      </span>
+                      <input 
+                        type="date" 
+                        value={getLocalISODate(selectedDate)}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const newD = new Date(e.target.value);
+                            setSelectedDate(newD);
+                            setDiaryCalendarMonth(newD);
+                          }
+                        }}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        max={getLocalISODate(new Date())}
+                        title="เปลี่ยนวันที่บันทึกย้อนหลัง (วัน/เดือน/ปี)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 7 Days Strip */}
+                {renderPast7DaysStrip()}
+              </div>
+
               <AnimatePresence mode="wait">
                 {!image && !result && !loading ? (
                   <motion.div
@@ -4904,44 +4977,72 @@ export default function App() {
                         />
 
                         <div className="bg-white p-4 rounded-3xl shadow-sm border border-neutral-100">
-                          <div className="flex justify-between items-center mb-3">
+                          <div className="flex justify-between items-center mb-2.5">
                             <div>
                               <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">บันทึกเป็นมื้ออาหาร</h3>
-                              <p className="text-[11px] font-bold text-orange-600 mt-0.5">
-                                วันที่: {formatDateDMY(selectedDate)} ({formatDateDMYShort(selectedDate)})
+                              <p className="text-[11px] font-bold text-orange-600 mt-0.5 flex items-center gap-1.5">
+                                <span>วันที่: {formatDateDMY(selectedDate)} ({formatDateDMYShort(selectedDate)})</span>
+                                {!isSameDay(selectedDate, new Date()) ? (
+                                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-md">ย้อนหลัง</span>
+                                ) : (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-md">วันนี้</span>
+                                )}
                               </p>
                             </div>
-                            <div className="flex items-center gap-1.5 bg-neutral-50 border border-neutral-200/80 rounded-xl px-2.5 py-1.5">
-                              <Calendar size={13} className="text-neutral-400" />
+                            <div className="relative flex items-center gap-1.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 rounded-xl px-2.5 py-1.5 cursor-pointer transition-colors shadow-2xs">
+                              <Calendar size={13} className="text-orange-500" />
+                              <span className="text-xs font-bold text-neutral-700">
+                                {formatDateDMY(selectedDate)}
+                              </span>
                               <input 
                                 type="date" 
                                 value={getLocalISODate(selectedDate)}
-                                onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                                className="text-xs font-bold text-neutral-700 bg-transparent outline-none cursor-pointer"
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    const newD = new Date(e.target.value);
+                                    setSelectedDate(newD);
+                                    setDiaryCalendarMonth(newD);
+                                  }
+                                }}
+                                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                                 max={getLocalISODate(new Date())}
-                                title="เลือกวันที่ (วัน/เดือน/ปี)"
+                                title="เลือกวันที่บันทึกย้อนหลัง (วัน/เดือน/ปี)"
                               />
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            {(Object.keys(mealLabels) as MealType[]).map((mealKey) => {
-                              const MealIcon = mealLabels[mealKey].icon;
-                              const isSelected = selectedMeal === mealKey;
-                              return (
-                                <button
-                                  key={mealKey}
-                                  onClick={() => setSelectedMeal(mealKey)}
-                                  className={`flex-1 py-3 px-2 rounded-2xl flex flex-col items-center gap-2 transition-all ${
-                                    isSelected 
-                                      ? 'bg-neutral-900 text-white shadow-md' 
-                                      : 'bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
-                                  }`}
-                                >
-                                  <MealIcon size={20} strokeWidth={isSelected ? 2.5 : 2} />
-                                  <span className="text-[10px] font-bold">{mealLabels[mealKey].label}</span>
-                                </button>
-                              );
-                            })}
+
+                          {/* 7 Days Past Strip inside Save Card */}
+                          <div className="mb-3">
+                            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+                              เลือกวันที่บันทึก (ย้อนหลัง 7 วัน)
+                            </p>
+                            {renderPast7DaysStrip(true)}
+                          </div>
+
+                          <div className="mb-2">
+                            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+                              เลือกมื้ออาหาร
+                            </p>
+                            <div className="flex gap-2">
+                              {(Object.keys(mealLabels) as MealType[]).map((mealKey) => {
+                                const MealIcon = mealLabels[mealKey].icon;
+                                const isSelected = selectedMeal === mealKey;
+                                return (
+                                  <button
+                                    key={mealKey}
+                                    onClick={() => setSelectedMeal(mealKey)}
+                                    className={`flex-1 py-3 px-2 rounded-2xl flex flex-col items-center gap-2 transition-all ${
+                                      isSelected 
+                                        ? 'bg-neutral-900 text-white shadow-md' 
+                                        : 'bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
+                                    }`}
+                                  >
+                                    <MealIcon size={20} strokeWidth={isSelected ? 2.5 : 2} />
+                                    <span className="text-[10px] font-bold">{mealLabels[mealKey].label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
 
@@ -5097,58 +5198,8 @@ export default function App() {
 
               {/* 7 Days Donut Strip (Matching Dashboard) */}
               {!showDiaryMonthCalendar ? (
-                <div className="flex gap-1.5 w-full justify-between mb-6">
-                  {past7Days.map((date, i) => {
-                    const isSelected = isSameDay(date, selectedDate);
-                    const isToday = isSameDay(date, new Date());
-                    
-                    const dayHistory = (history || []).filter(item => isSameDay(new Date(item.date), date));
-                    const carbsGrams = dayHistory.reduce((sum, item) => sum + (item?.carbsGrams || 0), 0);
-                    const proteinGrams = dayHistory.reduce((sum, item) => sum + (item?.proteinGrams || 0), 0);
-                    const fatGrams = dayHistory.reduce((sum, item) => sum + (item?.fatGrams || 0), 0);
-                    const totalMacros = carbsGrams + proteinGrams + fatGrams;
-                    const carbsPct = totalMacros > 0 ? (carbsGrams / totalMacros) * 100 : 0;
-                    const proteinPct = totalMacros > 0 ? (proteinGrams / totalMacros) * 100 : 0;
-                    const fatPct = totalMacros > 0 ? (fatGrams / totalMacros) * 100 : 0;
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedDate(date)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-2xl transition-all shadow-sm ${
-                          isSelected 
-                            ? 'bg-orange-500 text-white ring-2 ring-orange-500 ring-offset-1 ring-offset-neutral-50' 
-                            : 'bg-white text-neutral-500 border border-neutral-100 hover:bg-neutral-50 active:scale-95'
-                        }`}
-                      >
-                        <span className="text-[10px] font-bold uppercase mb-1">
-                          {date?.toLocaleDateString('th-TH', { weekday: 'short' })}
-                        </span>
-                        <div className="relative w-8 h-8 flex items-center justify-center mb-1">
-                          <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                            {totalMacros > 0 ? (
-                              <>
-                                {/* Carbs */}
-                                <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#22c55e" strokeWidth="3.5" strokeDasharray={`${carbsPct} 100`} strokeDashoffset="0" />
-                                {/* Protein */}
-                                <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#3b82f6" strokeWidth="3.5" strokeDasharray={`${proteinPct} 100`} strokeDashoffset={`-${carbsPct}`} />
-                                {/* Fat */}
-                                <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke="#fbbf24" strokeWidth="3.5" strokeDasharray={`${fatPct} 100`} strokeDashoffset={`-${carbsPct + proteinPct}`} />
-                              </>
-                            ) : (
-                              <circle cx="18" cy="18" r="15.91549431" fill="transparent" stroke={isSelected ? "rgba(255,255,255,0.3)" : "#f5f5f5"} strokeWidth="3.5" />
-                            )}
-                          </svg>
-                          <span className={`relative text-sm sm:text-base font-black ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
-                            {date.getDate()}
-                          </span>
-                        </div>
-                        {isToday && (
-                          <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-orange-500'}`} />
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="mb-6">
+                  {renderPast7DaysStrip()}
                 </div>
               ) : (
                 /* Full Month Calendar View with Macro Donut Graphs on each day */
