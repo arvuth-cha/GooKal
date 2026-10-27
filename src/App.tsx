@@ -1778,6 +1778,15 @@ export default function App() {
         setShowDailyMoodModal(false);
         setShowBackupRestoreModal(false);
         setShowClinicalReportModal(false);
+        setShowGoogleSearchModal(false);
+        setShowGoogleLoginModal(false);
+        setShowUserDropdown(false);
+        setShowMacroEditor(false);
+        setShowInsightsExportModal(false);
+        setShowReminderModal(false);
+        setShowCopyYesterdayModal(false);
+        setShowEnergyEditor(false);
+        setShowDiaryMonthCalendar(false);
         setShowGlucoseModal(false);
         setShowDiningMenuModal(false);
         setShowExerciseBurnModal(false);
@@ -6077,7 +6086,13 @@ export default function App() {
         <GlucoseCrashPredictorModal
           isOpen={showGlucoseModal}
           onClose={() => setShowGlucoseModal(false)}
+          initialFoodName={displayHistory.length > 0 ? displayHistory[0].foodName : undefined}
           recentFood={displayHistory.length > 0 ? displayHistory[0].foodName : undefined}
+          initialCalories={displayHistory.length > 0 ? displayHistory[0].calories : undefined}
+          initialCarbs={displayHistory.length > 0 ? displayHistory[0].carbsGrams : undefined}
+          initialSugar={displayHistory.length > 0 ? displayHistory[0].sugarGrams : undefined}
+          initialProtein={displayHistory.length > 0 ? displayHistory[0].proteinGrams : undefined}
+          initialFat={displayHistory.length > 0 ? displayHistory[0].fatGrams : undefined}
           onToast={showToast}
         />
 

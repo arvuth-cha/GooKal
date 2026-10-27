@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Activity, Zap, TrendingUp, Sparkles, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { GlucosePredictionResult } from '../../types/innovations';
@@ -7,6 +7,7 @@ interface GlucoseCrashPredictorModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialFoodName?: string;
+  recentFood?: string;
   initialCalories?: number;
   initialCarbs?: number;
   initialSugar?: number;
@@ -20,6 +21,7 @@ export const GlucoseCrashPredictorModal: React.FC<GlucoseCrashPredictorModalProp
   isOpen,
   onClose,
   initialFoodName = '',
+  recentFood,
   initialCalories = 450,
   initialCarbs = 60,
   initialSugar = 15,
@@ -28,7 +30,8 @@ export const GlucoseCrashPredictorModal: React.FC<GlucoseCrashPredictorModalProp
   initialFiber = 3,
   onToast
 }) => {
-  const [foodName, setFoodName] = useState(initialFoodName || 'ชานมไข่มุกหวานปกติ + ข้าวไข่เจียว');
+  const defaultFood = recentFood || initialFoodName || 'ชานมไข่มุกหวานปกติ + ข้าวไข่เจียว';
+  const [foodName, setFoodName] = useState(defaultFood);
   const [calories, setCalories] = useState(initialCalories || 450);
   const [carbsGrams, setCarbsGrams] = useState(initialCarbs || 60);
   const [sugarGrams, setSugarGrams] = useState(initialSugar || 15);
@@ -38,6 +41,19 @@ export const GlucoseCrashPredictorModal: React.FC<GlucoseCrashPredictorModalProp
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GlucosePredictionResult | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const currentFood = recentFood || initialFoodName;
+      if (currentFood) setFoodName(currentFood);
+      if (initialCalories !== undefined) setCalories(initialCalories);
+      if (initialCarbs !== undefined) setCarbsGrams(initialCarbs);
+      if (initialSugar !== undefined) setSugarGrams(initialSugar);
+      if (initialProtein !== undefined) setProteinGrams(initialProtein);
+      if (initialFat !== undefined) setFatGrams(initialFat);
+      if (initialFiber !== undefined) setFiberGrams(initialFiber);
+    }
+  }, [isOpen, recentFood, initialFoodName, initialCalories, initialCarbs, initialSugar, initialProtein, initialFat, initialFiber]);
 
   const handleAnalyze = async () => {
     if (!foodName.trim()) {

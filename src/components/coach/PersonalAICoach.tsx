@@ -301,13 +301,15 @@ export const PersonalAICoach: React.FC<PersonalAICoachProps> = ({
       const saved = localStorage.getItem('kalguru_personal_habits');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // If from an earlier day, reset water and daily flags to 0 for the new day
+        // If from an earlier day, reset water, workout, steps, and daily flags for the new day
         if (parsed.date && parsed.date !== todayDateStr) {
           return {
             ...parsed,
             date: todayDateStr,
             waterGlasses: 0,
-            workoutDone: false
+            workoutDone: false,
+            noLateSnack: true,
+            steps: 0
           };
         }
         return { ...parsed, date: todayDateStr };
