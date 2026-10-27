@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { formatDateDMY, formatFullThaiDate } from '../../utils/dateUtils';
 import { WaterLog, WaterDailyGoal } from '../../types/extendedFeatures';
 import { playNotificationChime } from '../../utils/notificationService';
+import { triggerHaptic } from '../../utils/voiceService';
 import {
   getLocalDateKey,
   getWaterLogsForDate,
@@ -97,6 +98,7 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
     addWaterLog(validMl, selectedDate);
     setRefreshTrigger(prev => prev + 1);
     playNotificationChime();
+    triggerHaptic(25);
 
     const newTotal = currentTotalMl + validMl;
     if (newTotal >= goal.targetMl && currentTotalMl < goal.targetMl) {
@@ -209,6 +211,43 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({
             title={isOpen ? "ยุบเนื้อหา" : "ขยายเนื้อหา"}
           >
             <ChevronUp size={20} className={`transition-transform duration-300 ${isOpen ? '' : 'rotate-180'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* 1-Tap Quick Hydration Bar (Always accessible on dashboard) */}
+      <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-cyan-100/70">
+        <span className="text-[10px] font-bold text-neutral-400 shrink-0">แตะดื่มน้ำทันที:</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <button
+            type="button"
+            id="water-quick-add-250-header"
+            onClick={(e) => { e.stopPropagation(); handleAddWater(250); }}
+            className="px-2.5 py-1 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200/80 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer"
+            title="ดื่มน้ำ 1 แก้ว (+250 ml)"
+          >
+            <span>🥛</span>
+            <span>+250ml</span>
+          </button>
+          <button
+            type="button"
+            id="water-quick-add-500-header"
+            onClick={(e) => { e.stopPropagation(); handleAddWater(500); }}
+            className="px-2.5 py-1 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200/80 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer"
+            title="ดื่มน้ำขวดเล็ก (+500 ml)"
+          >
+            <span>🍶</span>
+            <span>+500ml</span>
+          </button>
+          <button
+            type="button"
+            id="water-quick-add-600-header"
+            onClick={(e) => { e.stopPropagation(); handleAddWater(600); }}
+            className="px-2.5 py-1 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200/80 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer"
+            title="ดื่มน้ำขวดมาตรฐาน (+600 ml)"
+          >
+            <span>🍼</span>
+            <span>+600ml</span>
           </button>
         </div>
       </div>

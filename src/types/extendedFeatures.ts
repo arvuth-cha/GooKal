@@ -51,7 +51,7 @@ export interface CustomMealItem {
   sugarGrams?: number;
   sodiumMg?: number;
   servingSize: string; // e.g. "1 จาน (300g)" or "1 แก้ว"
-  category: 'meal' | 'drink' | 'snack' | 'supplement';
+  category: 'meal' | 'drink' | 'snack' | 'supplement' | 'convenience' | string;
   tags?: string[];
   createdAt: number;
 }

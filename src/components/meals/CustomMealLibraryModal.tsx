@@ -28,7 +28,8 @@ const DEFAULT_CUSTOM_MEALS: CustomMealItem[] = [
   { id: 'cm-1', name: 'โปรตีนเชคกล้วยหอม + เนยถั่ว', calories: 340, proteinGrams: 32, carbsGrams: 36, fatGrams: 8, sugarGrams: 14, sodiumMg: 180, servingSize: '1 แก้วเชค (400ml)', category: 'supplement', createdAt: Date.now() },
   { id: 'cm-2', name: 'ข้าวโอ๊ตนมอัลมอนด์ + เบอร์รี่รวม', calories: 280, proteinGrams: 12, carbsGrams: 48, fatGrams: 5, sugarGrams: 10, sodiumMg: 90, servingSize: '1 ถ้วย (300g)', category: 'meal', createdAt: Date.now() },
   { id: 'cm-3', name: 'สลัดอกไก่ฉีก น้ำสลัดงาญี่ปุ่นซีอิ๊ว', calories: 260, proteinGrams: 30, carbsGrams: 14, fatGrams: 9, sugarGrams: 4, sodiumMg: 490, servingSize: '1 จานใหญ่ (350g)', category: 'meal', createdAt: Date.now() },
-  { id: 'cm-4', name: 'มัทฉะลาเต้ นมพิสตาชิโอ หวาน 0%', calories: 65, proteinGrams: 2, carbsGrams: 4, fatGrams: 4, sugarGrams: 1, sodiumMg: 80, servingSize: '1 แก้ว (16 oz)', category: 'drink', createdAt: Date.now() }
+  { id: 'cm-4', name: 'มัทฉะลาเต้ นมพิสตาชิโอ หวาน 0%', calories: 65, proteinGrams: 2, carbsGrams: 4, fatGrams: 4, sugarGrams: 1, sodiumMg: 80, servingSize: '1 แก้ว (16 oz)', category: 'drink', createdAt: Date.now() },
+  { id: 'cm-5', name: 'อกไก่นุ่มกระเทียมพริกไทย 7-11', calories: 120, proteinGrams: 24, carbsGrams: 2, fatGrams: 1.5, sugarGrams: 1, sodiumMg: 420, servingSize: '1 ซอง (100g)', category: 'convenience', createdAt: Date.now() }
 ];
 
 export const CustomMealLibraryModal: React.FC<CustomMealLibraryModalProps> = ({
@@ -51,7 +52,7 @@ export const CustomMealLibraryModal: React.FC<CustomMealLibraryModalProps> = ({
   const [sugar, setSugar] = useState('');
   const [sodium, setSodium] = useState('');
   const [servingSize, setServingSize] = useState('1 จาน');
-  const [category, setCategory] = useState<'meal' | 'drink' | 'snack' | 'supplement'>('meal');
+  const [category, setCategory] = useState<'meal' | 'drink' | 'snack' | 'supplement' | 'convenience'>('meal');
 
   useEffect(() => {
     try {
@@ -179,9 +180,10 @@ export const CustomMealLibraryModal: React.FC<CustomMealLibraryModalProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
             {[
               { id: 'all', label: 'ทั้งหมด' },
-              { id: 'meal', label: '🍲 มื้อหลัก' },
-              { id: 'drink', label: '☕ เครื่องดื่ม' },
-              { id: 'snack', label: '🍎 สแน็ค' },
+              { id: 'meal', label: '🍲 อาหารคลีน/ตามสั่ง' },
+              { id: 'convenience', label: '🏪 เซเว่น/พร้อมทาน' },
+              { id: 'drink', label: '☕ เครื่องดื่ม/กาแฟ' },
+              { id: 'snack', label: '🍎 ของว่าง' },
               { id: 'supplement', label: '💪 อาหารเสริม' }
             ].map(cat => (
               <button
@@ -236,8 +238,9 @@ export const CustomMealLibraryModal: React.FC<CustomMealLibraryModalProps> = ({
                     onChange={(e: any) => setCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-2xl bg-white border border-neutral-200 text-xs font-bold text-neutral-800 outline-none"
                   >
-                    <option value="meal">มื้อหลัก</option>
-                    <option value="drink">เครื่องดื่ม</option>
+                    <option value="meal">อาหารคลีน / ตามสั่ง</option>
+                    <option value="convenience">เซเว่น / อาหารพร้อมทาน</option>
+                    <option value="drink">เครื่องดื่ม / กาแฟ</option>
                     <option value="snack">ของว่าง</option>
                     <option value="supplement">อาหารเสริม / โปรตีน</option>
                   </select>

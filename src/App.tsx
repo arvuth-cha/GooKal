@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe, Clock } from 'lucide-react';
+import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe, Clock, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import { ExportInsightsModal } from './components/ExportInsightsModal';
@@ -179,7 +179,12 @@ export default function App() {
   const [toasts, setToasts] = useState<{id: string, message: string}[]>([]);
   const [shownToasts, setShownToasts] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>('breakfast');
+  const [selectedMeal, setSelectedMeal] = useState<MealType>(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 16) return 'lunch';
+    return 'dinner';
+  });
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
   const [isSpeakingResult, setIsSpeakingResult] = useState<boolean>(false);
   const [showCopyYesterdayModal, setShowCopyYesterdayModal] = useState<boolean>(false);
@@ -188,6 +193,38 @@ export default function App() {
   const [historySortBy, setHistorySortBy] = useState<'time_desc' | 'calories_desc' | 'calories_asc'>('time_desc');
   const [isDashboardLoading, setIsDashboardLoading] = useState<boolean>(false);
   const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
+
+  // Quick Calories Pad (Item 4)
+  const [showQuickCaloriesModal, setShowQuickCaloriesModal] = useState<boolean>(false);
+  const [quickCalNameInput, setQuickCalNameInput] = useState<string>('');
+  const [quickCalValueInput, setQuickCalValueInput] = useState<string>('');
+  const [quickCalMealType, setQuickCalMealType] = useState<MealType>('lunch');
+
+  // Sticky Mini-Macro Bar (Item 9)
+  const [showStickyMacroBar, setShowStickyMacroBar] = useState<boolean>(false);
+
+  // Undo Delete (Item 15)
+  const [deletedMealDraft, setDeletedMealDraft] = useState<{ item: HistoryItem; timeoutId: any } | null>(null);
+
+  // Diary Meal Action Sheet (Item 8)
+  const [activeActionSheetMeal, setActiveActionSheetMeal] = useState<HistoryItem | null>(null);
+
+  // Mobile Swipe Gesture (Item 6)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  // FAB Speed Dial (Item 7)
+  const [showFabSpeedDial, setShowFabSpeedDial] = useState<boolean>(false);
+
+  // Recent Searches Chips (Item 5)
+  const [recentFoodSearches, setRecentFoodSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('kalguru_recent_food_searches');
+      return saved ? JSON.parse(saved) : ['ข้าวกะเพราไก่ไข่ดาว', 'ส้มตำไทย ไก่ย่าง', 'เกาเหลาหมูตุ๋น'];
+    } catch (e) {
+      return ['ข้าวกะเพราไก่ไข่ดาว', 'ส้มตำไทย ไก่ย่าง', 'เกาเหลาหมูตุ๋น'];
+    }
+  });
   const [hiddenFrequentMealIds, setHiddenFrequentMealIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('kalguru_hidden_frequent_meals');
@@ -737,6 +774,13 @@ export default function App() {
   const deleteHistoryItem = (id: string, foodName?: string) => {
     if (!id) return;
 
+    const itemToDelete = history.find(item => item && item.id === id);
+
+    // Clear existing undo timer if any
+    if (deletedMealDraft?.timeoutId) {
+      clearTimeout(deletedMealDraft.timeoutId);
+    }
+
     // 1. Add to tombstone set immediately
     addDeletedMealId(id, currentGoogleUser?.id);
 
@@ -749,7 +793,212 @@ export default function App() {
 
     playSuccessChime();
     triggerHaptic(20);
-    showToast(foodName ? `🗑️ ลบ "${foodName}" เรียบร้อยแล้ว` : '🗑️ ลบรายการอาหารเรียบร้อยแล้ว');
+
+    // 3. Keep for 5-second undo window (Item 15)
+    if (itemToDelete) {
+      const timeoutId = setTimeout(() => {
+        setDeletedMealDraft(null);
+      }, 5000);
+      setDeletedMealDraft({ item: itemToDelete, timeoutId });
+    }
+  };
+
+  const handleUndoDelete = () => {
+    if (!deletedMealDraft) return;
+    const { item, timeoutId } = deletedMealDraft;
+    clearTimeout(timeoutId);
+
+    // Remove from tombstone set
+    const deletedSet = getDeletedMealIds(currentGoogleUser?.id);
+    deletedSet.delete(item.id);
+
+    // Restore to history
+    setHistory(prev => {
+      const updated = [item, ...prev];
+      persistHistorySafely(updated);
+      return updated;
+    });
+
+    setDeletedMealDraft(null);
+    triggerHaptic([30, 20]);
+    showToast(`↩️ กู้คืน "${item.foodName}" เรียบร้อยแล้ว`);
+  };
+
+  // Item 4: Quick Calories-Only Pad Save Handler
+  const handleSaveQuickCalories = () => {
+    const cals = parseFloat(quickCalValueInput);
+    if (!cals || isNaN(cals) || cals <= 0) {
+      showToast('⚠️ กรุณาระบุจำนวนแคลอรี่ที่ถูกต้อง');
+      return;
+    }
+
+    const name = quickCalNameInput.trim() || 'บันทึกแคลอรี่ด่วน';
+    const p = Math.round((cals * 0.15) / 4 * 10) / 10;
+    const c = Math.round((cals * 0.55) / 4 * 10) / 10;
+    const f = Math.round((cals * 0.30) / 9 * 10) / 10;
+
+    const newItem: HistoryItem = {
+      id: `quick-cal-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      foodName: name,
+      calories: Math.round(cals),
+      proteinGrams: p,
+      carbsGrams: c,
+      fatGrams: f,
+      sugarGrams: 0,
+      sodiumMg: 0,
+      date: selectedDate.getTime(),
+      image: '',
+      mealType: quickCalMealType,
+      explanation: 'บันทึกแคลอรี่ด่วน (Quick Calories Pad)'
+    };
+
+    const newHistory = [newItem, ...history];
+    updateAndPersistHistory(newHistory);
+    playSuccessChime();
+    triggerHaptic([30, 20]);
+    showToast(`⚡ บันทึก "${name}" (${Math.round(cals)} kcal) มื้อ${mealLabels[quickCalMealType]?.label || quickCalMealType} เรียบร้อย!`);
+    setShowQuickCaloriesModal(false);
+    setQuickCalNameInput('');
+    setQuickCalValueInput('');
+  };
+
+  // Item 3: 1-Tap Copy Yesterday Meal per meal header
+  const hasYesterdayMeal = (mealType: MealType): boolean => {
+    const yesterday = new Date(selectedDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yDayStr = getLocalISODate(yesterday);
+    return history.some(item => {
+      const itemDateStr = getLocalISODate(new Date(item.date));
+      return itemDateStr === yDayStr && item.mealType === mealType;
+    });
+  };
+
+  const handleCopySingleMealFromYesterday = (mealType: MealType) => {
+    const yesterday = new Date(selectedDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yDayStr = getLocalISODate(yesterday);
+    const yesterdayItems = history.filter(item => {
+      const itemDateStr = getLocalISODate(new Date(item.date));
+      return itemDateStr === yDayStr && item.mealType === mealType;
+    });
+
+    if (yesterdayItems.length === 0) {
+      showToast(`⚠️ ไม่พบประวัติมื้อ${mealLabels[mealType]?.label || mealType}ของเมื่อวาน`);
+      return;
+    }
+
+    const targetDateMs = selectedDate.getTime();
+    const copiedItems: HistoryItem[] = yesterdayItems.map((item, idx) => ({
+      ...item,
+      id: `copied-yest-${Date.now()}-${idx}-${Math.random().toString(36).substring(7)}`,
+      date: targetDateMs,
+      explanation: (item.explanation || '') + ' (คัดลอกจากเมื่อวาน)'
+    }));
+
+    const updatedHistory = [...copiedItems, ...history];
+    updateAndPersistHistory(updatedHistory);
+    playSuccessChime();
+    triggerHaptic([30, 20]);
+    showToast(`📋 คัดลอกมื้อ${mealLabels[mealType]?.label || mealType}จากเมื่อวาน (${copiedItems.length} รายการ) เรียบร้อย!`);
+  };
+
+  // Item 8: Meal Action Sheet Handlers (Move / Copy / Favorite)
+  const handleMoveMealType = (item: HistoryItem, targetMeal: MealType, isCopy = false) => {
+    if (isCopy) {
+      const copyItem: HistoryItem = {
+        ...item,
+        id: `meal-copy-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        mealType: targetMeal,
+        date: selectedDate.getTime()
+      };
+      const newHistory = [copyItem, ...history];
+      updateAndPersistHistory(newHistory);
+      showToast(`📋 คัดลอก "${item.foodName}" ไปยังมื้อ${mealLabels[targetMeal]?.label || targetMeal} เรียบร้อย!`);
+    } else {
+      const updatedHistory = history.map(h => h.id === item.id ? { ...h, mealType: targetMeal } : h);
+      updateAndPersistHistory(updatedHistory);
+      showToast(`🔄 ย้าย "${item.foodName}" ไปยังมื้อ${mealLabels[targetMeal]?.label || targetMeal} เรียบร้อย!`);
+    }
+    triggerHaptic(20);
+    setActiveActionSheetMeal(null);
+  };
+
+  const handleSaveMealToFavoritesFromSheet = (item: HistoryItem) => {
+    try {
+      const customKey = getScopedStorageKey('kalguru_custom_meals_v1', currentGoogleUser?.id);
+      const saved = localStorage.getItem(customKey);
+      const existing: CustomMealItem[] = saved ? JSON.parse(saved) : [];
+      const newFavorite: CustomMealItem = {
+        id: `custom-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        name: item.foodName,
+        calories: item.calories,
+        proteinGrams: item.proteinGrams,
+        carbsGrams: item.carbsGrams,
+        fatGrams: item.fatGrams,
+        sugarGrams: item.sugarGrams,
+        sodiumMg: item.sodiumMg,
+        servingSize: '1 จาน/ที่',
+        category: 'meal',
+        tags: ['favorite'],
+        createdAt: Date.now()
+      };
+      existing.unshift(newFavorite);
+      localStorage.setItem(customKey, JSON.stringify(existing));
+      triggerHaptic([30, 20]);
+      showToast(`⭐ บันทึก "${item.foodName}" เป็นเมนูโปรดแล้ว!`);
+      setActiveActionSheetMeal(null);
+    } catch (e) {
+      showToast('❌ ไม่สามารถบันทึกเมนูโปรดได้');
+    }
+  };
+
+  // Item 6: Swipe Gestures for Dates Navigation
+  const navigateDay = (offsetDays: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + offsetDays);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (newDate > today) return;
+    setSelectedDate(newDate);
+    setDiaryCalendarMonth(newDate);
+    triggerHaptic(20);
+  };
+
+  const handleContainerTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleContainerTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    if (Math.abs(deltaX) > 65 && Math.abs(deltaY) < 55) {
+      if (deltaX > 0) {
+        // Swiped right -> Previous day
+        navigateDay(-1);
+      } else {
+        // Swiped left -> Next day
+        navigateDay(1);
+      }
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  // Item 9: Sticky Mini-Macro Bar Scroll Listener
+  const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    if (scrollTop > 220) {
+      if (!showStickyMacroBar) setShowStickyMacroBar(true);
+    } else {
+      if (showStickyMacroBar) setShowStickyMacroBar(false);
+    }
   };
 
   const handleResetAllData = () => {
@@ -907,7 +1156,24 @@ export default function App() {
     }
   };
 
-  const [textInput, setTextInput] = useState('');
+  const [textInput, setTextInput] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('kalguru_scan_draft_text') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  // Auto-persist draft text (Item 17)
+  useEffect(() => {
+    try {
+      if (textInput && textInput.trim()) {
+        sessionStorage.setItem('kalguru_scan_draft_text', textInput);
+      } else {
+        sessionStorage.removeItem('kalguru_scan_draft_text');
+      }
+    } catch (e) {}
+  }, [textInput]);
   const [isMainVoiceListening, setIsMainVoiceListening] = useState(false);
   const mainVoiceRecognizerRef = useRef<ThaiVoiceRecognizer | null>(null);
 
@@ -951,6 +1217,9 @@ export default function App() {
       setIsMainVoiceListening(false);
     } else {
       setTextInput('');
+      try {
+        sessionStorage.removeItem('kalguru_scan_draft_text');
+      } catch (e) {}
       const started = mainVoiceRecognizerRef.current.start();
       if (!started) {
         showToast('⚠️ ไม่สามารถเปิดไมโครโฟนได้ กรุณาตรวจสอบสิทธิ์การใช้งาน');
@@ -993,9 +1262,19 @@ export default function App() {
     }
   };
 
-  const analyzeText = async () => {
-    const query = textInput.trim();
+  const analyzeText = async (customQuery?: string) => {
+    const query = (typeof customQuery === 'string' ? customQuery : textInput).trim();
     if (!query) return;
+
+    // Save to recent food searches (Item 5)
+    try {
+      setRecentFoodSearches(prev => {
+        const filtered = prev.filter(q => q.toLowerCase() !== query.toLowerCase());
+        const updated = [query, ...filtered].slice(0, 8);
+        localStorage.setItem('kalguru_recent_food_searches', JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {}
     
     setLoading(true);
     setResult(null);
@@ -1018,6 +1297,12 @@ export default function App() {
       const data: AnalysisResult = await response.json();
       setResult(data);
       setTextInput('');
+      try {
+        sessionStorage.removeItem('kalguru_scan_draft_text');
+      } catch (e) {}
+      try {
+        sessionStorage.removeItem('kalguru_scan_draft_text');
+      } catch (e) {}
       playSuccessChime();
       triggerHaptic([30, 20, 30]);
     } catch (err: any) {
@@ -1128,6 +1413,9 @@ export default function App() {
         explanation: 'ประเมินคุณค่าทางโภชนาการตามมาตรฐานฐานข้อมูลอาหารไทย (Thai Food Composition)'
       });
       setTextInput('');
+      try {
+        sessionStorage.removeItem('kalguru_scan_draft_text');
+      } catch (e) {}
     } finally {
       setLoading(false);
     }
@@ -2313,16 +2601,36 @@ export default function App() {
       <div className={`w-full ${activeTab === 'crm' || activeTab === 'recipes' ? 'max-w-4xl' : 'max-w-md'} h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl sm:shadow-orange-900/10 sm:ring-8 ring-white/50 relative overflow-hidden flex flex-col transition-all duration-300 max-w-full`}>
         
         {/* Main Content Area */}
-        <main ref={mainScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-50/50 pb-24 relative w-full max-w-full">
-          {/* Offline Mode Banner */}
+        <main ref={mainScrollRef} onScroll={handleMainScroll} className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-50/50 pb-24 relative w-full max-w-full">
+          {/* Offline Mode Banner (Friendly Reassurance - Item 16) */}
           {!isOnline && (
-            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-amber-900 text-xs font-semibold shrink-0 animate-in slide-in-from-top duration-300">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                <WifiOff size={14} className="text-amber-600 shrink-0" />
-                <span>โหมดออฟไลน์ (ดูประวัติ & แดชบอร์ดได้)</span>
+            <div className="bg-amber-500/15 border-b border-amber-500/25 px-4 py-2.5 flex items-center justify-between text-amber-950 text-xs font-medium shrink-0 animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0"></span>
+                <WifiOff size={15} className="text-amber-700 shrink-0" />
+                <span className="truncate">โหมดออฟไลน์: บันทึกและดูอาหารได้ตามปกติ ข้อมูลจะซิงค์ให้อัตโนมัติเมื่อต่อเน็ต</span>
               </div>
-              <span className="text-[10px] bg-amber-200/80 px-2 py-0.5 rounded-full text-amber-900 font-bold">Offline Cached</span>
+              <span className="text-[10px] bg-amber-200/90 text-amber-900 font-bold px-2 py-0.5 rounded-full shrink-0 shadow-2xs">
+                ออฟไลน์พร้อมใช้
+              </span>
+            </div>
+          )}
+
+          {/* Sticky Mini-Macro Bar (Item 9) */}
+          {showStickyMacroBar && (activeTab === 'dashboard' || activeTab === 'history') && (
+            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-3.5 py-2 shadow-xs flex items-center justify-between text-xs animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-orange-600 text-sm">🔥 {(totalCaloriesDisplay || 0).toLocaleString()}</span>
+                <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">/ {(dailyGoal || 2000).toLocaleString()} kcal</span>
+                <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">
+                  {Math.round(((totalCaloriesDisplay || 0) / (dailyGoal || 2000)) * 100) || 0}%
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] font-bold">
+                <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">🍞 {formatNutrientValue(totalCarbs)}g</span>
+                <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-md">🥩 {formatNutrientValue(totalProtein)}g</span>
+                <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">🥑 {formatNutrientValue(totalFat)}g</span>
+              </div>
             </div>
           )}
 
@@ -2348,7 +2656,11 @@ export default function App() {
             isDashboardLoading ? (
               <DashboardSkeleton />
             ) : (
-            <div className="p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300 relative w-full max-w-full overflow-x-hidden">
+            <div 
+              onTouchStart={handleContainerTouchStart}
+              onTouchEnd={handleContainerTouchEnd}
+              className="p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300 relative w-full max-w-full overflow-x-hidden"
+            >
 
               {/* Dashboard Mobile Ergonomic Header */}
               <div className="flex flex-col gap-2.5 w-full">
@@ -4702,13 +5014,70 @@ export default function App() {
                         
                         <button
                           id="main-food-analyze-btn"
-                          onClick={analyzeText}
+                          onClick={() => analyzeText()}
                           disabled={!textInput.trim() || loading}
                           className="bg-orange-500 hover:bg-orange-600 disabled:bg-neutral-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-3 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <Sparkles size={16} />
                           <span>วิเคราะห์</span>
                         </button>
+                      </div>
+
+                      {/* Multi-dish friendly tip & Popular/Recent Chips (Items 1 & 5) */}
+                      <div className="w-full flex flex-col gap-2 mt-2">
+                        {/* Multi-dish guidance (Item 1) */}
+                        <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 bg-neutral-50/90 px-3 py-1.5 rounded-xl border border-neutral-200/70">
+                          <Sparkles size={12} className="text-orange-500 shrink-0" />
+                          <span>บันทึกหลายเมนูพร้อมกันได้ เช่น <em>"ข้าวกะเพราไก่ + ไข่ดาว 2 ฟอง + ชาไทย"</em> AI รวมแคลฯ ให้ทันที</span>
+                        </div>
+
+                        {/* Recent Searches Chips (Item 5) */}
+                        {recentFoodSearches && recentFoodSearches.length > 0 && (
+                          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar text-xs">
+                            <span className="text-[10px] font-bold text-neutral-400 shrink-0 flex items-center gap-1">
+                              <History size={11} /> ล่าสุด:
+                            </span>
+                            {recentFoodSearches.slice(0, 4).map((queryText, idx) => (
+                              <button
+                                key={`recent-search-${idx}`}
+                                type="button"
+                                onClick={() => {
+                                  setTextInput(queryText);
+                                  analyzeText(queryText);
+                                  triggerHaptic(15);
+                                }}
+                                className="px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-orange-50 hover:text-orange-700 text-neutral-700 text-[11px] font-semibold border border-neutral-200/60 shrink-0 transition-all active:scale-95 cursor-pointer"
+                              >
+                                {queryText}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Popular Thai Dishes Chips (Item 5) */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar text-xs">
+                          <span className="text-[10px] font-bold text-orange-500 shrink-0">🔥 ยอดนิยม:</span>
+                          {[
+                            'ข้าวกะเพราไก่ไข่ดาว',
+                            'ส้มตำไทย ไก่ย่าง',
+                            'ก๋วยเตี๋ยวต้มยำ',
+                            'เกาเหลาหมูตุ๋น',
+                            'ไข่ต้ม 2 ฟอง + กล้วยหอม'
+                          ].map((popularName) => (
+                            <button
+                              key={popularName}
+                              type="button"
+                              onClick={() => {
+                                setTextInput(popularName);
+                                analyzeText(popularName);
+                                triggerHaptic(15);
+                              }}
+                              className="px-2.5 py-1 rounded-full bg-orange-50/80 hover:bg-orange-100 text-orange-800 text-[11px] font-semibold border border-orange-200/60 shrink-0 transition-all active:scale-95 cursor-pointer"
+                            >
+                              {popularName}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Frequent Meals: 10 Most Eaten Meals from History */}
@@ -5095,7 +5464,11 @@ export default function App() {
           )}
           
           {activeTab === 'history' && (
-            <div className="p-6 animate-in fade-in duration-300">
+            <div 
+              onTouchStart={handleContainerTouchStart}
+              onTouchEnd={handleContainerTouchEnd}
+              className="p-3.5 sm:p-6 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden"
+            >
               {/* Header & Date Navigation */}
               <div className="flex flex-col gap-2 mb-4">
                 <div className="flex items-center justify-between">
@@ -5506,12 +5879,27 @@ export default function App() {
                           <h3 className="font-bold text-neutral-800 text-sm">{mealLabels[mealKey].label}</h3>
                           <span className="text-xs font-bold text-neutral-400 ml-1">{mealCalories} kcal</span>
                         </div>
-                        <button
-                          onClick={() => { setSelectedMeal(mealKey); setActiveTab('scan'); resetApp(); }}
-                          className="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-3 py-1.5 rounded-full flex items-center gap-1"
-                        >
-                          <Plus size={14} /> เพิ่มอาหาร
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {/* 1-Tap Copy Yesterday Meal for this meal (Item 3) */}
+                          {hasYesterdayMeal(mealKey) && (
+                            <button
+                              type="button"
+                              onClick={() => handleCopySingleMealFromYesterday(mealKey)}
+                              className="text-[11px] font-bold text-neutral-600 hover:text-orange-600 bg-neutral-100 hover:bg-orange-50 transition-colors px-2.5 py-1.5 rounded-full flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                              title={`คัดลอกมื้อ${mealLabels[mealKey].label}จากเมื่อวาน`}
+                            >
+                              <Copy size={12} className="text-neutral-500" />
+                              <span className="hidden sm:inline">คัดลอกเมื่อวาน</span>
+                              <span className="sm:hidden">เมื่อวาน</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setSelectedMeal(mealKey); setActiveTab('scan'); resetApp(); }}
+                            className="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-3 py-1.5 rounded-full flex items-center gap-1 active:scale-95 cursor-pointer"
+                          >
+                            <Plus size={14} /> เพิ่มอาหาร
+                          </button>
+                        </div>
                       </div>
                       
                       <div className="flex flex-col gap-3">
@@ -5570,17 +5958,31 @@ export default function App() {
                                       />
                                     </div>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteHistoryItem(item.id, item.foodName);
-                                    }}
-                                    className="p-2 text-neutral-300 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-all cursor-pointer"
-                                    title={`ลบ "${item.foodName}"`}
-                                  >
-                                    <Trash2 size={18} />
-                                  </button>
+                                  <div className="flex items-center gap-0.5 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionSheetMeal(item);
+                                        triggerHaptic(15);
+                                      }}
+                                      className="p-2 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 rounded-xl transition-all cursor-pointer"
+                                      title="ตัวเลือกเพิ่มเติม (ย้ายมื้อ/ทำซ้ำ/โปรด)"
+                                    >
+                                      <MoreHorizontal size={18} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteHistoryItem(item.id, item.foodName);
+                                      }}
+                                      className="p-2 text-neutral-300 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-all cursor-pointer"
+                                      title={`ลบ "${item.foodName}"`}
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {/* AI Coach & Swap Action Bar for this meal */}
@@ -6532,6 +6934,283 @@ export default function App() {
           onLoginSuccess={handleGoogleLoginSuccess}
           onToast={showToast}
         />
+
+        {/* Mobile Floating Action Button (FAB) & Speed Dial (Item 7) */}
+        <div className="fixed bottom-20 right-4 z-40 sm:hidden">
+          {showFabSpeedDial && (
+            <div className="flex flex-col items-end gap-2.5 mb-3 animate-in slide-in-from-bottom-3 duration-200">
+              {/* Quick Calorie Pad */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFabSpeedDial(false);
+                  setShowQuickCaloriesModal(true);
+                  triggerHaptic(20);
+                }}
+                className="flex items-center gap-2 bg-neutral-900 text-white text-xs font-bold px-3 py-2 rounded-2xl shadow-lg shadow-neutral-900/30 active:scale-95 transition-all cursor-pointer"
+              >
+                <span>⚡ บันทึกแคลฯ ด่วน (3 วิ)</span>
+              </button>
+
+              {/* Quick AI Voice / Text Search */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFabSpeedDial(false);
+                  setActiveTab('scan');
+                  resetApp();
+                  triggerHaptic(20);
+                }}
+                className="flex items-center gap-2 bg-orange-600 text-white text-xs font-bold px-3 py-2 rounded-2xl shadow-lg shadow-orange-600/30 active:scale-95 transition-all cursor-pointer"
+              >
+                <Sparkles size={14} />
+                <span>✍️ สแกน/พิมพ์อาหารด้วย AI</span>
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowFabSpeedDial(prev => !prev);
+              triggerHaptic(25);
+            }}
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl shadow-orange-500/30 transition-transform active:scale-95 cursor-pointer ${
+              showFabSpeedDial ? 'bg-neutral-800 rotate-45' : 'bg-gradient-to-tr from-orange-500 to-amber-500'
+            }`}
+            title="ปุ่มลอยบันทึกด่วน"
+          >
+            <Plus size={24} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Undo Delete Meal Toast Banner (Item 15) */}
+        {deletedMealDraft && (
+          <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 bg-neutral-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl border border-neutral-800 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <span className="text-base">🗑️</span>
+              <p className="text-xs text-neutral-200 truncate">
+                ลบ <span className="font-bold text-white">"{deletedMealDraft.item.foodName}"</span> แล้ว
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleUndoDelete}
+              className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black rounded-xl transition-all shadow-md shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw size={13} />
+              <span>เลิกทำ</span>
+            </button>
+          </div>
+        )}
+
+        {/* Quick Calories-Only Pad Modal (Item 4) */}
+        {showQuickCaloriesModal && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl w-full max-w-sm p-5 shadow-2xl border border-neutral-100 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                    ⚡
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-neutral-900">บันทึกแคลอรี่ด่วน (3 วินาที)</h3>
+                    <p className="text-[11px] text-neutral-400">ระบุแคลอรี่โดยตรง ไม่ต้องรอประมวลผล</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickCaloriesModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Meal Selector */}
+              <div>
+                <label className="text-xs font-bold text-neutral-700 block mb-1.5">เลือกมื้ออาหาร</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setQuickCalMealType(m)}
+                      className={`py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                        quickCalMealType === m
+                          ? 'bg-orange-50 border-orange-400 text-orange-700 shadow-2xs'
+                          : 'bg-neutral-50 border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                      }`}
+                    >
+                      {mealLabels[m]?.label || m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Meal Name (Optional) */}
+              <div>
+                <label className="text-xs font-bold text-neutral-700 block mb-1">ชื่อรายการ (ไม่ใส่ก็ได้)</label>
+                <input
+                  type="text"
+                  value={quickCalNameInput}
+                  onChange={(e) => setQuickCalNameInput(e.target.value)}
+                  placeholder="เช่น ขนมปังปิ้ง, กาแฟดำ, ชานมไข่มุก"
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              {/* Calorie Numeric Input & Quick Add Chips */}
+              <div>
+                <label className="text-xs font-bold text-neutral-700 block mb-1">จำนวนแคลอรี่ (kcal) *</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="5000"
+                    autoFocus
+                    value={quickCalValueInput}
+                    onChange={(e) => setQuickCalValueInput(e.target.value)}
+                    placeholder="เช่น 250"
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-lg font-black text-orange-600 placeholder-neutral-300 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400">kcal</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {[50, 100, 200, 300, 500].map(addVal => (
+                    <button
+                      key={addVal}
+                      type="button"
+                      onClick={() => {
+                        const current = parseFloat(quickCalValueInput) || 0;
+                        setQuickCalValueInput(String(current + addVal));
+                        triggerHaptic(15);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-[11px] font-bold border border-orange-200/60 transition-all active:scale-95 cursor-pointer"
+                    >
+                      +{addVal}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setQuickCalValueInput('')}
+                    className="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-[11px] font-bold transition-all ml-auto cursor-pointer"
+                  >
+                    ล้าง
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-neutral-100">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickCaloriesModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuickCalories}
+                  disabled={!quickCalValueInput || parseFloat(quickCalValueInput) <= 0}
+                  className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-neutral-300 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check size={14} />
+                  <span>บันทึกทันที</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Diary Meal Action Sheet Modal (Item 8) */}
+        {activeActionSheetMeal && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl border border-neutral-100 flex flex-col gap-3 animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                <div className="min-w-0 pr-2">
+                  <h3 className="text-sm font-extrabold text-neutral-900 truncate">
+                    {activeActionSheetMeal.foodName}
+                  </h3>
+                  <p className="text-[11px] text-orange-600 font-bold">
+                    {activeActionSheetMeal.calories} kcal • มื้อ{mealLabels[activeActionSheetMeal.mealType]?.label || activeActionSheetMeal.mealType}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveActionSheetMeal(null)}
+                  className="p-1.5 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Move / Copy to other meals */}
+              <div>
+                <span className="text-[11px] font-bold text-neutral-500 block mb-1.5">🔄 ย้ายหรือคัดลอกไปยังมื้ออื่น:</span>
+                <div className="flex flex-col gap-1.5">
+                  {(['breakfast', 'lunch', 'dinner'] as MealType[])
+                    .filter(m => m !== activeActionSheetMeal.mealType)
+                    .map(m => (
+                      <div key={m} className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveMealType(activeActionSheetMeal, m, false)}
+                          className="flex-1 py-2 px-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-xs font-bold text-neutral-700 text-left transition-all truncate cursor-pointer"
+                        >
+                          ย้ายไป {mealLabels[m]?.label}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveMealType(activeActionSheetMeal, m, true)}
+                          title={`คัดลอกไป ${mealLabels[m]?.label}`}
+                          className="px-3 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-xs font-bold text-orange-700 flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                        >
+                          <Copy size={12} />
+                          <span>คัดลอก</span>
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Save to Favorites */}
+              <button
+                type="button"
+                onClick={() => handleSaveMealToFavoritesFromSheet(activeActionSheetMeal)}
+                className="w-full py-2.5 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Star size={14} className="text-amber-500 fill-amber-500" />
+                <span>บันทึกเป็นเมนูโปรดส่วนตัว</span>
+              </button>
+
+              {/* Duplicate in today */}
+              <button
+                type="button"
+                onClick={() => handleMoveMealType(activeActionSheetMeal, activeActionSheetMeal.mealType, true)}
+                className="w-full py-2.5 px-3 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-neutral-700 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Copy size={14} className="text-neutral-500" />
+                <span>ทำซ้ำเมนูนี้อีก 1 ที่</span>
+              </button>
+
+              {/* Delete */}
+              <button
+                type="button"
+                onClick={() => {
+                  deleteHistoryItem(activeActionSheetMeal.id, activeActionSheetMeal.foodName);
+                  setActiveActionSheetMeal(null);
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Trash2 size={14} className="text-red-500" />
+                <span>ลบรายการนี้</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
