@@ -408,7 +408,12 @@ export default function App() {
 
       if (result?.success && result?.data) {
         const delKey = getScopedStorageKey('kalguru_deleted_meals_v1', userToSync.id);
-        const localDel: string[] = JSON.parse(localStorage.getItem(delKey) || '[]');
+        let localDel: string[] = [];
+        try {
+          localDel = JSON.parse(localStorage.getItem(delKey) || '[]');
+        } catch {
+          localDel = [];
+        }
         const serverDel: string[] = Array.isArray(result.data.deletedIds) ? result.data.deletedIds : [];
         const combinedDelSet = new Set([...localDel, ...serverDel]);
         localStorage.setItem(delKey, JSON.stringify(Array.from(combinedDelSet)));

@@ -33,8 +33,12 @@ export const AllergySafetySettingsModal: React.FC<AllergySafetySettingsModalProp
   onToast
 }) => {
   const [allergens, setAllergens] = useState<AllergenItem[]>(() => {
-    const saved = localStorage.getItem('kalguru_allergen_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_ALLERGENS;
+    try {
+      const saved = localStorage.getItem('kalguru_allergen_settings');
+      return saved ? JSON.parse(saved) : DEFAULT_ALLERGENS;
+    } catch {
+      return DEFAULT_ALLERGENS;
+    }
   });
 
   const [customInput, setCustomInput] = useState('');

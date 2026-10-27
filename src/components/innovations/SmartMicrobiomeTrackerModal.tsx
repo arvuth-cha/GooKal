@@ -32,8 +32,12 @@ export const SmartMicrobiomeTrackerModal: React.FC<SmartMicrobiomeTrackerModalPr
   onToast
 }) => {
   const [plants, setPlants] = useState<PlantDiversityItem[]>(() => {
-    const saved = localStorage.getItem('kalguru_microbiome_plants');
-    return saved ? JSON.parse(saved) : DEFAULT_PLANTS;
+    try {
+      const saved = localStorage.getItem('kalguru_microbiome_plants');
+      return saved ? JSON.parse(saved) : DEFAULT_PLANTS;
+    } catch {
+      return DEFAULT_PLANTS;
+    }
   });
 
   const [inputName, setInputName] = useState('');

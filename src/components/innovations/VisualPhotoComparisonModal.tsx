@@ -28,11 +28,11 @@ export const VisualPhotoComparisonModal: React.FC<VisualPhotoComparisonModalProp
   try {
     if (gender === 'male') {
       const val = 495 / (1.0324 - 0.19077 * Math.log10(Math.max(1, (waistCm || 80) - (neckCm || 38))) + 0.15456 * Math.log10(heightCm || 175)) - 450;
-      const parsedVal = Number(val.toFixed(1));
+      const parsedVal = isFinite(val) ? Number(val.toFixed(1)) : NaN;
       bodyFatPercent = isNaN(parsedVal) ? 18.5 : Math.min(45, Math.max(6, parsedVal));
     } else {
       const val = 495 / (1.29579 - 0.35004 * Math.log10(Math.max(1, (waistCm || 70) + (hipCm || 96) - (neckCm || 32))) + 0.22100 * Math.log10(heightCm || 160)) - 450;
-      const parsedVal = Number(val.toFixed(1));
+      const parsedVal = isFinite(val) ? Number(val.toFixed(1)) : NaN;
       bodyFatPercent = isNaN(parsedVal) ? 23.5 : Math.min(50, Math.max(12, parsedVal));
     }
   } catch (e) {

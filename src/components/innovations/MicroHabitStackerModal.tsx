@@ -31,8 +31,12 @@ export const MicroHabitStackerModal: React.FC<MicroHabitStackerModalProps> = ({
   onToast
 }) => {
   const [habits, setHabits] = useState<HabitStackItem[]>(() => {
-    const saved = localStorage.getItem('kalguru_habit_stacks');
-    return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    try {
+      const saved = localStorage.getItem('kalguru_habit_stacks');
+      return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    } catch {
+      return DEFAULT_HABITS;
+    }
   });
 
   const [newTrigger, setNewTrigger] = useState('');
