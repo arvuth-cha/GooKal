@@ -9,7 +9,9 @@ import {
   Moon, 
   CheckCircle2, 
   AlertCircle,
-  Play
+  Play,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { 
   loadReminderSettings, 
@@ -22,12 +24,17 @@ import { MealReminderSettings } from '../../types/notifications';
 interface MealReminderCardProps {
   onOpenSettings: () => void;
   onToast: (msg: string) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const MealReminderCard: React.FC<MealReminderCardProps> = ({
   onOpenSettings,
-  onToast
+  onToast,
+  isExpanded,
+  onToggleExpand
 }) => {
+  const isCardExpanded = isExpanded !== undefined ? isExpanded : true;
   const [settings, setSettings] = useState<MealReminderSettings>(loadReminderSettings);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [isTesting, setIsTesting] = useState(false);
@@ -58,11 +65,14 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 space-y-4">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div 
+        onClick={onToggleExpand}
+        className={`flex items-start justify-between gap-2 ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+      >
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
             settings.enabled 
               ? 'bg-orange-50 text-orange-600' 
               : 'bg-neutral-100 text-neutral-400'
@@ -71,7 +81,9 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-neutral-900 text-base">ระบบแจ้งเตือนมื้ออาหาร</h3>
+              <h3 className="font-bold text-neutral-900 text-base group-hover:text-orange-600 transition-colors">
+                ระบบแจ้งเตือนมื้ออาหาร
+              </h3>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 settings.enabled && permission === 'granted'
                   ? 'bg-emerald-100 text-emerald-800'
@@ -92,15 +104,37 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="p-2 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-500 hover:text-orange-600 border border-neutral-200 hover:border-orange-200 transition-colors"
-          title="ตั้งค่าเวลาแจ้งเตือน"
-        >
-          <Settings2 size={16} />
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenSettings();
+            }}
+            className="p-2 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-500 hover:text-orange-600 border border-neutral-200 hover:border-orange-200 transition-colors"
+            title="ตั้งค่าเวลาแจ้งเตือน"
+          >
+            <Settings2 size={16} />
+          </button>
+
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
+            >
+              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
+        </div>
       </div>
+
+      {isCardExpanded && (
+        <div className="space-y-4 animate-in fade-in duration-200">
 
       {/* Next Scheduled Pill / Time info */}
       {settings.enabled ? (
@@ -196,6 +230,8 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
           <span>ทดสอบ</span>
         </button>
       </div>
+        </div>
+      )}
     </div>
   );
 };

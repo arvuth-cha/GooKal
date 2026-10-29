@@ -12,7 +12,9 @@ import {
   AlignLeft,
   BookOpen,
   CheckCircle2,
-  Play
+  Play,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { 
   AccessibilitySettings, 
@@ -25,11 +27,16 @@ import {
 
 interface AccessibilitySettingsCardProps {
   onToast: (msg: string) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps> = ({
-  onToast
+  onToast,
+  isExpanded,
+  onToggleExpand
 }) => {
+  const isCardExpanded = isExpanded !== undefined ? isExpanded : true;
   const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_ACCESSIBILITY_SETTINGS);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
@@ -79,16 +86,21 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 space-y-5 transition-all">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-5 transition-all">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+      <div 
+        onClick={onToggleExpand}
+        className={`flex items-center justify-between ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
             <Eye size={20} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-neutral-900 leading-tight">การเข้าถึง & โหมดแสดงผล (Accessibility)</h2>
+              <h2 className="text-base font-bold text-neutral-900 leading-tight group-hover:text-purple-700 transition-colors">
+                การเข้าถึง & โหมดแสดงผล (Accessibility)
+              </h2>
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
                 100% ใช้งานได้จริง
               </span>
@@ -99,16 +111,38 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleReset}
-          title="รีเซ็ตค่ามาตรฐาน"
-          className="px-2.5 py-1.5 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <RotateCcw size={13} />
-          <span>รีเซ็ต</span>
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReset();
+            }}
+            title="รีเซ็ตค่ามาตรฐาน"
+            className="px-2.5 py-1.5 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            <RotateCcw size={13} />
+            <span className="hidden sm:inline">รีเซ็ต</span>
+          </button>
+
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
+            >
+              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
+        </div>
       </div>
+
+      {isCardExpanded && (
+        <div className="space-y-5 animate-in fade-in duration-200">
 
       {/* 1. Theme Selector */}
       <div className="space-y-2">
@@ -313,6 +347,8 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
         <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
         <span className="font-medium">การตั้งค่าทั้งหมดถูกบันทึกอัตโนมัติลงในอุปกรณ์นี้ และมีผลกับทุกหน้าของแอปทันที</span>
       </div>
+        </div>
+      )}
     </div>
   );
 };

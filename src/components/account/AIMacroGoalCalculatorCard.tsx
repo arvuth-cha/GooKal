@@ -57,6 +57,8 @@ interface AIMacroGoalCalculatorCardProps {
   onSaveProfile: (updatedProfile: UserProfile, notifyUser?: boolean) => void;
   onToast: (msg: string) => void;
   onOpenDetailedModal?: () => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 type GoalKey = 'balanced' | 'muscle_maintain' | 'muscle_build' | 'fat_loss' | 'fat_loss_fast' | 'keto' | 'custom';
@@ -190,8 +192,11 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   userProfile,
   onSaveProfile,
   onToast,
-  onOpenDetailedModal
+  onOpenDetailedModal,
+  isExpanded,
+  onToggleExpand
 }) => {
+  const isCardExpanded = isExpanded !== undefined ? isExpanded : true;
   const safeWeight = Math.max(30, Number(userProfile.weight) || 60);
   const safeHeight = Math.max(100, Number(userProfile.height) || 165);
   const safeAge = Math.max(12, Math.min(100, Number(userProfile.age) || 28));
@@ -551,14 +556,17 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4 sm:space-y-5 w-full max-w-full overflow-hidden">
       
       {/* 1. Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3 sm:pb-4">
+      <div 
+        onClick={onToggleExpand}
+        className={`flex items-start sm:items-center justify-between gap-3 ${isCardExpanded ? 'border-b border-neutral-100 pb-3 sm:pb-4' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+      >
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0 group-hover:scale-105 transition-transform">
             <Sparkles size={20} className="animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
+              <h2 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors">
                 AI คำนวณโปรตีน & สารอาหารเฉพาะบุคคล
               </h2>
               <span className="px-2 py-0.2 rounded-full bg-orange-100 text-orange-800 text-[10px] font-black border border-orange-200">
@@ -571,14 +579,39 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
           </div>
         </div>
 
-        {/* Physical Metrics Pill */}
-        <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200/80 rounded-2xl px-3 py-1.5 text-xs text-neutral-600 self-start sm:self-auto shrink-0 shadow-2xs">
-          <Scale size={13} className="text-orange-500" />
-          <span className="font-bold text-neutral-800">นน. {safeWeight} kg</span>
-          <span className="text-neutral-300">•</span>
-          <span>TDEE: <b className="text-neutral-900">{tdee.toLocaleString()}</b> kcal</span>
+        {/* Physical Metrics Pill & Summary */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:flex items-center gap-2 bg-neutral-50 border border-neutral-200/80 rounded-2xl px-3 py-1.5 text-xs text-neutral-600 shadow-2xs">
+            <Scale size={13} className="text-orange-500" />
+            <span className="font-bold text-neutral-800">นน. {safeWeight} kg</span>
+            <span className="text-neutral-300">•</span>
+            <span>TDEE: <b className="text-neutral-900">{tdee.toLocaleString()}</b> kcal</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-orange-50/80 border border-orange-200 rounded-xl px-2.5 py-1 text-xs">
+            <span className="font-black text-orange-700">{computedTotalCals.toLocaleString()} kcal</span>
+            <span className="text-orange-300">•</span>
+            <span className="font-bold text-blue-700">P {proteinGrams}g</span>
+          </div>
+
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
+            >
+              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
         </div>
       </div>
+
+      {isCardExpanded && (
+        <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
 
       {/* 2. CALORIE DEFICIT & SURPLUS CONTROLS (NEW & DEDICATED) */}
       <div className="bg-gradient-to-br from-amber-50/60 via-orange-50/40 to-neutral-50 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-orange-200/90 space-y-3">
@@ -1374,6 +1407,8 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
               </div>
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
     </div>
