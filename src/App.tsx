@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe, Clock, RotateCcw } from 'lucide-react';
+import { Sparkles, Camera, Share, Loader2, Utensils, AlertCircle, History, Plus, Activity, Sunrise, Sun, Moon, Trash2, Home, Calendar, BarChart2, User, LogIn, MoreHorizontal, Target, Dumbbell, ChevronUp, ChevronRight, ChevronLeft, CalendarDays, Check, Lock, Image as ImageIcon, X, Download, Upload, Cloud, FileSpreadsheet, FileJson, FileText, Copy, Share2, CheckCircle2, TrendingUp, Sparkle, Wifi, WifiOff, HardDrive, Bot, Award, Star, MessageSquare, ChefHat, BookOpen, Bell, BellRing, Droplet, Timer, Scale, Heart, Mic, MicOff, Scan, Zap, ShoppingCart, ArrowRightLeft, Smile, Printer, FileCheck, Layers, Coffee, Flame, RefreshCw, Edit3, Volume2, VolumeX, Filter, Search, ArrowUpDown, BookmarkCheck, Repeat, Globe, Clock, RotateCcw, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import { ExportInsightsModal } from './components/ExportInsightsModal';
@@ -2420,24 +2420,40 @@ export default function App() {
 
   const handleSaveEnergy = () => {
     const targetC = Number(editingEnergy.targetCalories) || undefined;
+    let updatedMacros = userProfile.customMacros;
+    if (targetC && targetC > 500) {
+      if (updatedMacros) {
+        const currentMacroCals = (updatedMacros.protein * 4) + (updatedMacros.carbs * 4) + (updatedMacros.fat * 9);
+        if (currentMacroCals > 0 && Math.abs(currentMacroCals - targetC) > 10) {
+          const ratio = targetC / currentMacroCals;
+          updatedMacros = {
+            ...updatedMacros,
+            protein: Math.max(10, Math.round(updatedMacros.protein * ratio)),
+            carbs: Math.max(10, Math.round(updatedMacros.carbs * ratio)),
+            fat: Math.max(5, Math.round(updatedMacros.fat * ratio)),
+          };
+        }
+      }
+    }
     saveProfile({
       ...userProfile,
       customBmr: Number(editingEnergy.bmr) || undefined,
       customTdee: Number(editingEnergy.tdee) || undefined,
-      targetCalories: targetC
-    });
+      targetCalories: targetC,
+      customMacros: updatedMacros
+    }, true);
     if (targetC) {
       setDailyGoal(targetC);
     }
     setShowEnergyEditor(false);
-    showToast('⚡ บันทึกค่า BMR, TDEE เผาผลาญจริง และเป้าหมายแคลอรีเรียบร้อย!');
+    showToast('⚡ บันทึกค่า BMR, TDEE เผาผลาญจริง และเป้าหมายแคลอรีสัมพันธ์กันเรียบร้อย!');
   };
 
   const handleResetEnergy = () => {
-    const { customBmr, customTdee, targetCalories, ...restProfile } = userProfile;
-    saveProfile(restProfile);
+    const { customBmr, customTdee, targetCalories, customMacros, ...restProfile } = userProfile;
+    saveProfile(restProfile, true);
     setShowEnergyEditor(false);
-    showToast('🔄 รีเซ็ตค่าพลังงานกลับเป็นค่ามาตรฐานจากการคำนวณแล้ว');
+    showToast('🔄 รีเซ็ตค่าพลังงานและสารอาหารกลับเป็นค่ามาตรฐานจากการคำนวณแล้ว');
   };
   
 
@@ -4198,6 +4214,33 @@ export default function App() {
                     <option value={1.9}>ออกกำลังกายหนักมาก / นักกีฬาฝึกซ้อมทุกวัน (1.9)</option>
                   </select>
                 </div>
+
+                {/* Live Metabolic Preview Strip */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100 flex flex-col">
+                    <span className="text-[11px] font-bold text-neutral-400">อัตราเผาผลาญพื้นฐาน (BMR)</span>
+                    <span className="text-sm font-black text-neutral-800 mt-0.5">{bmr.toLocaleString()} <span className="text-[10px] font-semibold text-neutral-400">kcal/วัน</span></span>
+                  </div>
+                  <div className="bg-orange-50/60 rounded-2xl p-3 border border-orange-100/80 flex flex-col">
+                    <span className="text-[11px] font-bold text-orange-600">เผาผลาญรวมต่อวัน (TDEE)</span>
+                    <span className="text-sm font-black text-orange-700 mt-0.5">{tdee.toLocaleString()} <span className="text-[10px] font-semibold text-orange-500">kcal/วัน</span></span>
+                  </div>
+                </div>
+
+                {/* Explicit Save Profile Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    saveProfile(userProfile, true);
+                    triggerHaptic([30, 20]);
+                    playSuccessChime();
+                    showToast('💾 บันทึกข้อมูลสรีระพื้นฐานเรียบร้อยแล้ว');
+                  }}
+                  className="w-full py-3 px-4 rounded-2xl bg-neutral-900 hover:bg-black active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer mt-1"
+                >
+                  <Save size={15} />
+                  <span>💾 บันทึกข้อมูลสรีระพื้นฐาน (Save Profile)</span>
+                </button>
               </div>
 
               {/* AI Macro & Protein Goal Calculator with Custom Overrides */}
