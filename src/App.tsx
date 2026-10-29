@@ -4016,13 +4016,13 @@ export default function App() {
           )}
 
           {activeTab === 'account' && (
-            <div className="p-6 flex flex-col gap-6 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">ข้อมูลบัญชีผู้ใช้</h1>
+            <div className="p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300 max-w-4xl mx-auto w-full">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">ข้อมูลบัญชีผู้ใช้</h1>
               </div>
 
               {/* Google Account Status Card */}
-              <div className="bg-gradient-to-br from-white to-neutral-50/80 rounded-3xl p-6 shadow-sm border border-neutral-200/80">
+              <div className="bg-gradient-to-br from-white to-neutral-50/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-200/80">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     {currentGoogleUser ? (
@@ -4127,7 +4127,7 @@ export default function App() {
               </div>
 
               {/* Biological Profile & Physical Metrics */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
                 <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
                   <div>
                     <h2 className="text-base font-bold text-neutral-900">ข้อมูลสรีระพื้นฐาน</h2>
@@ -4263,7 +4263,7 @@ export default function App() {
               />
 
               {/* Data Export & Backup Card */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
@@ -4329,7 +4329,7 @@ export default function App() {
               </div>
 
               {/* Data Import & Restore Card */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
