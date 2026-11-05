@@ -8,16 +8,12 @@ import {
   Droplet, 
   Plus, 
   Minus, 
-  Check, 
   Target, 
   Scale, 
   Loader2, 
   ChevronDown, 
   ChevronUp, 
-  Zap,
   Flame,
-  TrendingDown,
-  TrendingUp,
   Activity
 } from 'lucide-react';
 import { 
@@ -192,7 +188,6 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   userProfile,
   onSaveProfile,
   onToast,
-  onOpenDetailedModal,
   isExpanded,
   onToggleExpand
 }) => {
@@ -219,9 +214,6 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   const [isCalculatingAI, setIsCalculatingAI] = useState(false);
   const [showExplanationDetail, setShowExplanationDetail] = useState(false);
   const [plan, setPlan] = useState<CalculatedNutritionPlan | null>(null);
-
-  // Protein adjustment mode: 'g_per_kg' vs 'grams_per_day'
-  const [proteinInputMode, setProteinInputMode] = useState<'g_per_kg' | 'grams_per_day'>('g_per_kg');
 
   // Core interactive states
   const [proteinGrams, setProteinGrams] = useState<number>(() => {
@@ -355,7 +347,6 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   };
 
   const handleAdjustDeficitStep = (stepDelta: number) => {
-    // stepDelta: e.g. -50 to increase deficit (reduce calories), +50 to decrease deficit (increase calories)
     const newCals = Math.max(800, targetCalories + stepDelta);
     applyNewCaloriesWithLockedProtein(newCals);
     triggerHaptic(15);
@@ -392,7 +383,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     applyNewCaloriesWithLockedProtein(newCals);
   };
 
-  // 7. Apply Preset Macro Ratio Split (High Protein, Balanced, Low Carb, High Carb)
+  // 7. Apply Preset Macro Ratio Split
   const handleApplyMacroSplit = (pRatio: number, cRatio: number, fRatio: number, splitName: string) => {
     const total = targetCalories;
     const newP = Math.max(30, Math.round((total * pRatio) / 4));
@@ -553,42 +544,35 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   };
 
   return (
-    <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4 sm:space-y-5 w-full max-w-full overflow-hidden">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-neutral-100 space-y-3.5 w-full max-w-full overflow-hidden">
       
-      {/* 1. Header Section */}
+      {/* 1. COMPACT HEADER - Designed to NEVER squish or break vertically */}
       <div 
         onClick={onToggleExpand}
-        className={`flex items-start sm:items-center justify-between gap-3 ${isCardExpanded ? 'border-b border-neutral-100 pb-3 sm:pb-4' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+        className={`flex items-center justify-between gap-2 sm:gap-3 ${isCardExpanded ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
       >
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0 group-hover:scale-105 transition-transform">
-            <Sparkles size={20} className="animate-pulse" />
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <Sparkles size={16} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors">
-                AI คำนวณโปรตีน & สารอาหารเฉพาะบุคคล
+              <h2 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors truncate">
+                AI คำนวณโปรตีน & สารอาหาร
               </h2>
-              <span className="px-2 py-0.2 rounded-full bg-orange-100 text-orange-800 text-[10px] font-black border border-orange-200">
+              <span className="hidden xs:inline-block px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-800 text-[9px] font-black shrink-0">
                 2-Way Calorie & Macro
               </span>
             </div>
-            <p className="text-xs text-neutral-500 font-medium mt-0.5">
-              ปรับระดับ Deficit, โปรตีน, คาร์บ, ไขมัน คำนวณแคลอรี่เรียลไทม์ และเกลี่ยสารอาหารอัตโนมัติ
+            <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+              ปรับเป้าหมายแคลอรี่และสารอาหาร คำนวณอัตโนมัติ
             </p>
           </div>
         </div>
 
-        {/* Physical Metrics Pill & Summary */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 bg-neutral-50 border border-neutral-200/80 rounded-2xl px-3 py-1.5 text-xs text-neutral-600 shadow-2xs">
-            <Scale size={13} className="text-orange-500" />
-            <span className="font-bold text-neutral-800">นน. {safeWeight} kg</span>
-            <span className="text-neutral-300">•</span>
-            <span>TDEE: <b className="text-neutral-900">{tdee.toLocaleString()}</b> kcal</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-orange-50/80 border border-orange-200 rounded-xl px-2.5 py-1 text-xs">
+        {/* Header Right: Summary Pill & Chevron */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-lg sm:rounded-xl px-2 py-1 text-[11px] sm:text-xs">
             <span className="font-black text-orange-700">{computedTotalCals.toLocaleString()} kcal</span>
             <span className="text-orange-300">•</span>
             <span className="font-bold text-blue-700">P {proteinGrams}g</span>
@@ -601,26 +585,28 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                 e.stopPropagation();
                 onToggleExpand();
               }}
-              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
               title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
             >
-              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {isCardExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
           )}
         </div>
       </div>
 
       {isCardExpanded && (
-        <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
+        <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-200">
 
-      {/* 2. CALORIE DEFICIT & SURPLUS CONTROLS (NEW & DEDICATED) */}
-      <div className="bg-gradient-to-br from-amber-50/60 via-orange-50/40 to-neutral-50 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-orange-200/90 space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Flame size={18} className="text-orange-600" />
-            <div>
-              <h3 className="text-sm font-black text-neutral-900 flex items-center gap-1.5">
-                <span>เลือกระดับ Calorie Deficit / Surplus</span>
+          {/* 2. COMPACT GOAL & DEFICIT CONTROLS (UNIFIED 1-PANEL) */}
+          <div className="bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-neutral-50 rounded-xl sm:rounded-2xl p-3 border border-orange-200/80 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-neutral-700">
+                <Scale size={13} className="text-orange-500 shrink-0" />
+                <span>นน. {safeWeight} kg</span>
+                <span className="text-neutral-300">•</span>
+                <span>TDEE: <b className="text-neutral-900">{tdee.toLocaleString()}</b> kcal</span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${
                   isDeficit 
                     ? 'bg-rose-100 text-rose-800 border-rose-200' 
@@ -630,785 +616,463 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                 }`}>
                   {isDeficit ? `Deficit ${calorieDiffFromTdee} kcal` : isSurplus ? `Surplus +${calorieDiffFromTdee} kcal` : 'สมดุล TDEE'}
                 </span>
-              </h3>
-              <p className="text-[11px] text-neutral-500 font-medium mt-0.5">
-                เทียบกับ TDEE เผาผลาญจริง ({tdee.toLocaleString()} kcal/วัน) ของสรีระคุณ
-              </p>
-            </div>
-          </div>
-
-          <div className="text-right">
-            <span className="text-xs font-black text-orange-950 block">
-              เป้าหมายพลังงาน: <b className="text-base text-orange-600 font-black">{computedTotalCals.toLocaleString()}</b> kcal
-            </span>
-            <span className="text-[10px] text-neutral-500 font-semibold">
-              {calorieDiffFromTdee < 0 
-                ? `คาดการณ์ลดไขมัน ~${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./เดือน` 
-                : calorieDiffFromTdee > 0 
-                  ? `คาดการณ์เพิ่มมวล ~${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./เดือน` 
-                  : 'รักษาน้ำหนักคงที่'}
-            </span>
-          </div>
-        </div>
-
-        {/* Deficit Presets Grid - Clean, neat on mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DEFICIT_PRESETS.map((preset) => {
-            const isCurrent = Math.abs(calorieDiffFromTdee - preset.offset) <= 25;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handleSelectDeficitPreset(preset)}
-                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-left transition-all border cursor-pointer relative ${
-                  isCurrent
-                    ? 'bg-white border-orange-500 text-orange-950 shadow-xs ring-2 ring-orange-400/30'
-                    : 'bg-white/80 hover:bg-white border-neutral-200/90 text-neutral-700 hover:border-orange-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-extrabold flex items-center gap-1 truncate pr-1">
-                    <span>{preset.icon}</span>
-                    <span>{preset.label}</span>
-                  </span>
-                  {isCurrent && <Check size={14} className="text-orange-600 font-bold shrink-0" />}
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-[10px] font-black text-orange-700 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-200">
-                    {preset.badge}
-                  </span>
-                  <span className="text-[10px] text-neutral-500 font-bold">
-                    {(tdee + preset.offset).toLocaleString()} kcal
-                  </span>
-                </div>
-                <span className="text-[10px] text-neutral-500 block leading-tight mt-1 line-clamp-1">
-                  {preset.sub}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom Deficit Fine-Tuning Stepper Strip */}
-        <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-orange-200/80 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <Activity size={14} className="text-orange-600" />
-            <span className="text-xs font-bold text-neutral-800">ปรับละเอียด Deficit / Surplus:</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleAdjustDeficitStep(-50)}
-              className="px-2.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-orange-100 text-neutral-700 hover:text-orange-800 text-xs font-black transition-all cursor-pointer flex items-center gap-1 active:scale-95 border border-neutral-200"
-              title="เพิ่มการลดแคลอรี่ (Deficit เพิ่มอีก -50 kcal)"
-            >
-              <Minus size={13} />
-              <span>ลด 50 kcal</span>
-            </button>
-
-            <span className="px-3 py-1 rounded-lg bg-orange-50 text-orange-700 font-black text-xs border border-orange-200 min-w-[90px] text-center">
-              {calorieDiffFromTdee === 0 ? '0 kcal (สมดุล)' : `${calorieDiffFromTdee > 0 ? '+' : ''}${calorieDiffFromTdee} kcal`}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => handleAdjustDeficitStep(50)}
-              className="px-2.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-orange-100 text-neutral-700 hover:text-orange-800 text-xs font-black transition-all cursor-pointer flex items-center gap-1 active:scale-95 border border-neutral-200"
-              title="เพิ่มแคลอรี่ (+50 kcal)"
-            >
-              <Plus size={13} />
-              <span>เพิ่ม 50 kcal</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Goal Selection Presets (Compact & Neat) */}
-      <div>
-        <label className="block text-xs font-bold text-neutral-700 mb-1.5 flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Target size={14} className="text-orange-500" />
-            <span>เลือกเป้าหมายสุขภาพตามประเภทรูปร่าง</span>
-          </span>
-          <span className="text-[11px] text-neutral-400 font-normal hidden sm:inline">
-            (แตะเพื่อใส่สัดส่วนแนะนำอัตโนมัติ)
-          </span>
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
-          {GOAL_OPTIONS.map((item) => {
-            const isSelected = selectedGoal === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelectGoalPreset(item)}
-                className={`p-2.5 rounded-xl sm:rounded-2xl text-left transition-all border cursor-pointer ${
-                  isSelected
-                    ? 'bg-orange-50 border-orange-400 text-orange-950 shadow-2xs ring-1 ring-orange-300'
-                    : 'bg-neutral-50/80 border-neutral-200/70 text-neutral-700 hover:bg-neutral-100'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-bold block truncate pr-1">{item.label}</span>
-                  {isSelected && <Check size={13} className="text-orange-600 font-bold shrink-0" />}
-                </div>
-                <span className="text-[10px] text-neutral-500 block leading-tight truncate">{item.sub}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. FOUR CORE INTERACTIVE NUTRIENT & CALORIE CARDS (RE-DESIGNED FOR MOBILE NEATNESS) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Sliders size={16} className="text-orange-600" />
-            <h3 className="text-sm font-extrabold text-neutral-900">
-              ปรับแต่งสารอาหารหลัก (Macro Nutrients)
-            </h3>
-          </div>
-          <span className="text-[10px] text-neutral-500 font-medium bg-neutral-100 px-2.5 py-0.5 rounded-lg">
-            ระบบคำนวณสองทิศทาง 4P + 4C + 9F
-          </span>
-        </div>
-
-        {/* 2x2 Grid on Tablet/Desktop, 1 Column on Mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-
-          {/* CARD 1: 🥩 โปรตีน (PROTEIN) - FULLY ENHANCED WITH VISIBLE TOTAL GRAMS & G/KG */}
-          <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-blue-200 shadow-2xs space-y-3 relative overflow-hidden">
-            {/* Top Accent Strip */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
-
-            {/* Header: Name, Grams, and g/kg */}
-            <div className="flex items-start justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl shrink-0 font-bold shadow-2xs">
-                  🥩
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-black text-blue-950">โปรตีน (Protein)</span>
-                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-black border border-blue-200">
-                      {proteinPerKg} g/kg
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-neutral-500 font-medium block mt-0.5">
-                    {proteinCals} kcal • {proteinPct}% ของพลังงานรวม
-                  </span>
-                </div>
-              </div>
-
-              {/* PROMINENT TOTAL PROTEIN AMOUNT DISPLAY (SOLVES ISSUE 3) */}
-              <div className="text-right shrink-0 bg-blue-50/80 px-2.5 py-1.5 rounded-xl border border-blue-200">
-                <div className="text-lg sm:text-xl font-black text-blue-700 leading-none">
-                  {proteinGrams} <span className="text-xs font-bold text-blue-950">กรัม/วัน</span>
-                </div>
-                <span className="text-[10px] text-blue-600 font-bold block mt-0.5">
-                  ต่อน้ำหนัก {safeWeight} กก.
+                <span className="text-[10px] text-neutral-500 font-bold hidden sm:inline">
+                  {calorieDiffFromTdee < 0 
+                    ? `~${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./ด.` 
+                    : calorieDiffFromTdee > 0 
+                      ? `+${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./ด.` 
+                      : 'คงที่'}
                 </span>
               </div>
             </div>
 
-            {/* Mode Switcher: g/kg vs Grams/day */}
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              <span className="text-xs font-bold text-neutral-600">
-                โหมดปรับปริมาณ:
-              </span>
-              <div className="flex items-center bg-neutral-100 p-0.5 rounded-xl border border-neutral-200 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setProteinInputMode('g_per_kg')}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    proteinInputMode === 'g_per_kg'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-neutral-600 hover:text-neutral-900'
-                  }`}
+            {/* 2 Compact Dropdown Selectors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-bold text-neutral-700 block mb-1 flex items-center gap-1">
+                  <Target size={12} className="text-orange-500" />
+                  <span>เป้าหมายสุขภาพตามประเภทรูปร่าง</span>
+                </label>
+                <select
+                  value={selectedGoal}
+                  onChange={(e) => {
+                    const match = GOAL_OPTIONS.find(o => o.id === e.target.value);
+                    if (match) handleSelectGoalPreset(match);
+                  }}
+                  className="w-full bg-white border border-neutral-300 hover:border-orange-400 rounded-xl px-2.5 py-1.5 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 shadow-2xs transition-all cursor-pointer"
                 >
-                  กรัม/กก. (g/kg)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProteinInputMode('grams_per_day')}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    proteinInputMode === 'grams_per_day'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-neutral-600 hover:text-neutral-900'
-                  }`}
-                >
-                  กรัม/วัน (Grams)
-                </button>
+                  {GOAL_OPTIONS.map(opt => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label} (P {opt.recommendedProteinPerKg} g/kg)
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {/* Stepper & Numeric Input */}
-            {proteinInputMode === 'g_per_kg' ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+              <div>
+                <label className="text-[11px] font-bold text-neutral-700 block mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Flame size={12} className="text-orange-500" />
+                    <span>เลือกระดับ Calorie Deficit / Surplus</span>
+                  </span>
+                  <span className="text-[10px] text-orange-600 font-bold">
+                    {(tdee + (DEFICIT_PRESETS.find(p => Math.abs(calorieDiffFromTdee - p.offset) <= 25)?.offset || 0)).toLocaleString()} kcal
+                  </span>
+                </label>
+                <div className="flex items-center gap-1">
+                  <select
+                    value={
+                      DEFICIT_PRESETS.find(p => Math.abs(calorieDiffFromTdee - p.offset) <= 25)?.id || 'standard_deficit'
+                    }
+                    onChange={(e) => {
+                      const match = DEFICIT_PRESETS.find(p => p.id === e.target.value);
+                      if (match) handleSelectDeficitPreset(match);
+                    }}
+                    className="flex-1 bg-white border border-neutral-300 hover:border-orange-400 rounded-xl px-2.5 py-1.5 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 shadow-2xs transition-all cursor-pointer"
+                  >
+                    {DEFICIT_PRESETS.map(preset => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.icon} {preset.label} ({preset.badge})
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
-                    onClick={() => handleProteinPerKgChange(proteinPerKg - 0.1)}
-                    className="w-11 h-11 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer border border-neutral-200"
-                    title="ลด 0.1 g/kg"
+                    onClick={() => handleAdjustDeficitStep(-50)}
+                    className="w-8 h-8 rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:text-orange-600 hover:border-orange-300 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="ลดพลังงาน (-50 kcal)"
                   >
-                    <Minus size={18} />
+                    <Minus size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustDeficitStep(50)}
+                    className="w-8 h-8 rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:text-orange-600 hover:border-orange-300 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="เพิ่มพลังงาน (+50 kcal)"
+                  >
+                    <Plus size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. FOUR DIRECT NUMERIC INPUT CARDS (EASY TYPING, NO MULTI-STEP CONFUSION) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-neutral-800 flex items-center gap-1.5">
+                <Sliders size={14} className="text-orange-600" />
+                <span>ปรับแต่งสารอาหาร (กรอกตัวเลขได้โดยตรง)</span>
+              </span>
+              <span className="text-[10px] text-neutral-500 font-medium bg-neutral-100 px-2 py-0.5 rounded-md">
+                คำนวณสองทิศทาง 4P + 4C + 9F
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+
+              {/* CARD 1: 🎯 TARGET CALORIES */}
+              <div className="bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-white rounded-xl p-3 border-2 border-orange-300 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🎯</span>
+                    <div>
+                      <span className="text-xs font-black text-orange-950">เป้าหมายแคลอรี่รวม</span>
+                      <span className="text-[10px] text-orange-700/80 block leading-tight">
+                        {computedTotalCals.toLocaleString()} kcal/วัน
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
+                    isDeficit ? 'bg-rose-100 text-rose-800 border-rose-200' : isSurplus ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {isDeficit ? `${calorieDiffFromTdee}` : isSurplus ? `+${calorieDiffFromTdee}` : 'สมดุล'} kcal
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleTargetCaloriesChange(computedTotalCals - 50)}
+                    className="w-8 h-8 rounded-lg bg-white border border-orange-200 hover:bg-orange-50 text-orange-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="ลด 50 kcal"
+                  >
+                    <Minus size={14} />
                   </button>
                   <div className="relative flex-1">
                     <input
                       type="number"
-                      step="0.1"
-                      min="0.6"
-                      max="3.5"
-                      inputMode="decimal"
-                      value={proteinPerKg}
-                      onChange={(e) => handleProteinPerKgChange(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl pl-3 pr-16 py-2 text-left text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      step="50"
+                      min="800"
+                      max="5000"
+                      inputMode="numeric"
+                      value={targetCalories}
+                      onChange={(e) => handleTargetCaloriesChange(parseInt(e.target.value, 10) || 0)}
+                      className="w-full bg-white border border-orange-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-blue-500 pointer-events-none">
-                      g/kg
-                    </span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleProteinPerKgChange(proteinPerKg + 0.1)}
-                    className="w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs shadow-blue-600/30"
-                    title="เพิ่ม 0.1 g/kg"
+                    onClick={() => handleTargetCaloriesChange(computedTotalCals + 50)}
+                    className="w-8 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="เพิ่ม 50 kcal"
                   >
-                    <Plus size={18} />
+                    <Plus size={14} />
                   </button>
-                </div>
-
-                {/* Protein Highlight Box */}
-                <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-200 flex items-center justify-between text-xs">
-                  <span className="font-bold text-blue-900">
-                    💡 ปริมาณโปรตีนที่ได้รับ: <b className="text-sm font-black text-blue-700">{proteinGrams} กรัม/วัน</b>
-                  </span>
-                  <span className="text-[11px] font-bold text-blue-600">
-                    ({proteinCals} kcal)
-                  </span>
-                </div>
-
-                {/* Quick Density Chips (With Exact Grams Displayed) */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-neutral-500">เลือกความหนาแน่นโปรตีนยอดนิยม:</span>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
-                    {[
-                      { val: 1.2, name: 'สุขภาพ' },
-                      { val: 1.4, name: 'ออกกำลัง' },
-                      { val: 1.6, name: 'ลีน/คุมหิว' },
-                      { val: 1.8, name: 'สร้างกล้าม' },
-                      { val: 2.0, name: 'นักกีฬา' },
-                      { val: 2.2, name: 'เพาะกาย' }
-                    ].map((item) => {
-                      const isSel = Math.abs(proteinPerKg - item.val) < 0.05;
-                      const g = Math.round(item.val * safeWeight);
-                      return (
-                        <button
-                          key={item.val}
-                          type="button"
-                          onClick={() => handleProteinPerKgChange(item.val)}
-                          className={`text-center py-1.5 px-1 rounded-xl border transition-all cursor-pointer ${
-                            isSel
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                              : 'bg-neutral-50 hover:bg-blue-50 text-neutral-700 border-neutral-200'
-                          }`}
-                        >
-                          <span className="block text-[11px] font-black">{item.val}g</span>
-                          <span className={`block text-[9px] ${isSel ? 'text-blue-100' : 'text-neutral-500'}`}>
-                            {g} กรัม
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <span className="text-xs font-bold text-orange-600 shrink-0 min-w-[28px]">kcal</span>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+
+              {/* CARD 2: 🥩 PROTEIN */}
+              <div className="bg-blue-50/60 rounded-xl p-3 border-2 border-blue-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🥩</span>
+                    <div>
+                      <span className="text-xs font-black text-blue-950">โปรตีน (Protein)</span>
+                      <span className="text-[10px] text-blue-700/80 block leading-tight">
+                        {proteinCals} kcal • {proteinPct}% ของพลังงาน
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px] font-black text-blue-800 border border-blue-200">
+                    <span>{proteinPerKg} g/kg</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleProteinGramsChange(proteinGrams - 5)}
-                    className="w-11 h-11 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer border border-neutral-200"
+                    className="w-8 h-8 rounded-lg bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
                     title="ลด 5 กรัม"
                   >
-                    <Minus size={18} />
+                    <Minus size={14} />
                   </button>
                   <div className="relative flex-1">
                     <input
                       type="number"
-                      step="5"
+                      step="1"
                       min="20"
                       max="400"
                       inputMode="numeric"
                       value={proteinGrams}
                       onChange={(e) => handleProteinGramsChange(parseInt(e.target.value, 10) || 0)}
-                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl pl-3 pr-16 py-2 text-left text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-blue-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-blue-500 pointer-events-none">
-                      กรัม/วัน
-                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleProteinGramsChange(proteinGrams + 5)}
-                    className="w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs shadow-blue-600/30"
+                    className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
                     title="เพิ่ม 5 กรัม"
                   >
-                    <Plus size={18} />
+                    <Plus size={14} />
                   </button>
+                  <span className="text-xs font-bold text-blue-700 shrink-0 min-w-[28px]">กรัม</span>
                 </div>
 
-                <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-200 flex items-center justify-between text-xs">
-                  <span className="font-bold text-blue-900">
-                    เทียบเท่า: <b className="text-sm font-black text-blue-700">{proteinPerKg} g/kg</b> (นน. {safeWeight} kg)
-                  </span>
-                  <span className="text-[11px] font-bold text-blue-600">
-                    ~{proteinCals} kcal
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* CARD 2: 🍞 คาร์โบไฮเดรต (CARBOHYDRATES) */}
-          <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-amber-200 shadow-2xs space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-400" />
-
-            <div className="flex items-start justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-xl shrink-0 font-bold shadow-2xs">
-                  🍞
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-black text-amber-950">คาร์โบไฮเดรต (Carbs)</span>
-                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-black border border-amber-200">
-                      {Math.round((carbsGrams / safeWeight) * 10) / 10} g/kg
-                    </span>
+                {/* Quick g/kg buttons strip */}
+                <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 pt-0.5">
+                  <span>เลือกความหนาแน่น:</span>
+                  <div className="flex items-center gap-1">
+                    {[1.2, 1.6, 1.8, 2.0].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => handleProteinPerKgChange(val)}
+                        className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                          Math.abs(proteinPerKg - val) < 0.05
+                            ? 'bg-blue-600 text-white font-black'
+                            : 'bg-white hover:bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}
+                      >
+                        {val}g
+                      </button>
+                    ))}
                   </div>
-                  <span className="text-[11px] text-neutral-500 font-medium block mt-0.5">
-                    {carbsCals} kcal • {carbsPct}% ของพลังงานรวม
+                </div>
+              </div>
+
+              {/* CARD 3: 🍞 CARBOHYDRATES */}
+              <div className="bg-amber-50/60 rounded-xl p-3 border-2 border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🍞</span>
+                    <div>
+                      <span className="text-xs font-black text-amber-950">คาร์โบไฮเดรต (Carbs)</span>
+                      <span className="text-[10px] text-amber-700/80 block leading-tight">
+                        {carbsCals} kcal • {carbsPct}% ของพลังงาน
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">
+                    {Math.round((carbsGrams / safeWeight) * 10) / 10} g/kg
                   </span>
                 </div>
-              </div>
 
-              <div className="text-right shrink-0 bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200">
-                <div className="text-lg sm:text-xl font-black text-amber-800 leading-none">
-                  {carbsGrams} <span className="text-xs font-bold text-amber-950">กรัม/วัน</span>
-                </div>
-                <span className="text-[10px] text-amber-600 font-bold block mt-0.5">
-                  แหล่งพลังงานหลัก
-                </span>
-              </div>
-            </div>
-
-            {/* Stepper & Numeric Input */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCarbsChange(carbsGrams - 10)}
-                  className="w-11 h-11 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer border border-neutral-200"
-                  title="ลด 10 กรัม"
-                >
-                  <Minus size={18} />
-                </button>
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    step="5"
-                    min="10"
-                    max="800"
-                    inputMode="numeric"
-                    value={carbsGrams}
-                    onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-amber-50/50 border border-amber-300 rounded-xl pl-3 pr-14 py-2 text-left text-lg font-black text-amber-900 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-amber-500 pointer-events-none">
-                    กรัม
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCarbsChange(carbsGrams + 10)}
-                  className="w-11 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs shadow-amber-500/30"
-                  title="เพิ่ม 10 กรัม"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-
-              {/* Quick Stepper Chips */}
-              <div className="flex items-center justify-between gap-1 text-[11px] pt-0.5">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleCarbsChange(carbsGrams - 25)}
-                    className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-bold border border-neutral-200 cursor-pointer"
+                    onClick={() => handleCarbsChange(carbsGrams - 10)}
+                    className="w-8 h-8 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="ลด 10 กรัม"
                   >
-                    -25g
+                    <Minus size={14} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCarbsChange(carbsGrams + 25)}
-                    className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold cursor-pointer"
-                  >
-                    +25g
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCarbsChange(carbsGrams + 50)}
-                    className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold cursor-pointer"
-                  >
-                    +50g
-                  </button>
-                </div>
-                <span className="text-[10px] text-neutral-400 font-medium">พลังงานกล้ามเนื้อ</span>
-              </div>
-            </div>
-          </div>
-
-          {/* CARD 3: 🥑 ไขมันดี (FAT) */}
-          <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-emerald-200 shadow-2xs space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-
-            <div className="flex items-start justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-xl shrink-0 font-bold shadow-2xs">
-                  🥑
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-black text-emerald-950">ไขมันดี (Fat)</span>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-200">
-                      {Math.round((fatGrams / safeWeight) * 10) / 10} g/kg
-                    </span>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="5"
+                      min="10"
+                      max="800"
+                      inputMode="numeric"
+                      value={carbsGrams}
+                      onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10) || 0)}
+                      className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-amber-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                    />
                   </div>
-                  <span className="text-[11px] text-neutral-500 font-medium block mt-0.5">
-                    {fatCals} kcal • {fatPct}% ของพลังงานรวม
+                  <button
+                    type="button"
+                    onClick={() => handleCarbsChange(carbsGrams + 10)}
+                    className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="เพิ่ม 10 กรัม"
+                  >
+                    <Plus size={14} />
+                  </button>
+                  <span className="text-xs font-bold text-amber-700 shrink-0 min-w-[28px]">กรัม</span>
+                </div>
+              </div>
+
+              {/* CARD 4: 🥑 FAT */}
+              <div className="bg-emerald-50/60 rounded-xl p-3 border-2 border-emerald-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🥑</span>
+                    <div>
+                      <span className="text-xs font-black text-emerald-950">ไขมันดี (Fat)</span>
+                      <span className="text-[10px] text-emerald-700/80 block leading-tight">
+                        {fatCals} kcal • {fatPct}% ของพลังงาน
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
+                    {Math.round((fatGrams / safeWeight) * 10) / 10} g/kg
                   </span>
                 </div>
-              </div>
 
-              <div className="text-right shrink-0 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                <div className="text-lg sm:text-xl font-black text-emerald-800 leading-none">
-                  {fatGrams} <span className="text-xs font-bold text-emerald-950">กรัม/วัน</span>
-                </div>
-                <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">
-                  ฮอร์โมน & วิตามิน
-                </span>
-              </div>
-            </div>
-
-            {/* Stepper & Numeric Input */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleFatChange(fatGrams - 5)}
-                  className="w-11 h-11 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer border border-neutral-200"
-                  title="ลด 5 กรัม"
-                >
-                  <Minus size={18} />
-                </button>
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    step="5"
-                    min="10"
-                    max="300"
-                    inputMode="numeric"
-                    value={fatGrams}
-                    onChange={(e) => handleFatChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-emerald-50/50 border border-emerald-300 rounded-xl pl-3 pr-14 py-2 text-left text-lg font-black text-emerald-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-500 pointer-events-none">
-                    กรัม
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleFatChange(fatGrams + 5)}
-                  className="w-11 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs shadow-emerald-600/30"
-                  title="เพิ่ม 5 กรัม"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-
-              {/* Quick Stepper Chips */}
-              <div className="flex items-center justify-between gap-1 text-[11px] pt-0.5">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleFatChange(fatGrams - 10)}
-                    className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-bold border border-neutral-200 cursor-pointer"
+                    onClick={() => handleFatChange(fatGrams - 5)}
+                    className="w-8 h-8 rounded-lg bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="ลด 5 กรัม"
                   >
-                    -10g
+                    <Minus size={14} />
                   </button>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="5"
+                      min="10"
+                      max="300"
+                      inputMode="numeric"
+                      value={fatGrams}
+                      onChange={(e) => handleFatChange(parseInt(e.target.value, 10) || 0)}
+                      className="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all"
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleFatChange(fatGrams + 10)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold cursor-pointer"
+                    onClick={() => handleFatChange(fatGrams + 5)}
+                    className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="เพิ่ม 5 กรัม"
                   >
-                    +10g
+                    <Plus size={14} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFatChange(fatGrams + 20)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold cursor-pointer"
-                  >
-                    +20g
-                  </button>
+                  <span className="text-xs font-bold text-emerald-700 shrink-0 min-w-[28px]">กรัม</span>
                 </div>
-                <span className="text-[10px] text-neutral-400 font-medium">ดูดซึมวิตามิน A,D,E,K</span>
               </div>
+
             </div>
           </div>
 
-          {/* CARD 4: 🎯 เป้าหมายแคลอรี่รวมต่อวัน (DAILY CALORIES) */}
-          <div className="bg-gradient-to-br from-orange-500/10 via-amber-500/10 to-orange-500/5 rounded-2xl p-3.5 sm:p-4 border-2 border-orange-300 shadow-sm space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
+          {/* 4. SLIM VISUAL MACRO ENERGY BAR & QUICK RATIOS */}
+          <div className="bg-neutral-50 rounded-xl p-2.5 sm:p-3 border border-neutral-200/80 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold flex-wrap gap-1">
+              <span className="text-neutral-700 flex items-center gap-1.5">
+                <span className="text-blue-700 font-black">P {proteinPct}% ({proteinGrams}g)</span>
+                <span className="text-neutral-300">•</span>
+                <span className="text-amber-700 font-black">C {carbsPct}% ({carbsGrams}g)</span>
+                <span className="text-neutral-300">•</span>
+                <span className="text-emerald-700 font-black">F {fatPct}% ({fatGrams}g)</span>
+              </span>
+              <span className="text-orange-600 font-black">
+                รวม {computedTotalCals.toLocaleString()} kcal
+              </span>
+            </div>
 
-            <div className="flex items-start justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xl shrink-0 font-bold shadow-md shadow-orange-500/30">
-                  🎯
+            <div className="w-full h-2.5 bg-neutral-200 rounded-full overflow-hidden flex shadow-inner">
+              <div 
+                style={{ width: `${proteinPct}%` }} 
+                className="bg-blue-600 h-full transition-all duration-300"
+                title={`โปรตีน: ${proteinGrams}g (${proteinCals} kcal)`}
+              />
+              <div 
+                style={{ width: `${carbsPct}%` }} 
+                className="bg-amber-500 h-full transition-all duration-300"
+                title={`คาร์บ: ${carbsGrams}g (${carbsCals} kcal)`}
+              />
+              <div 
+                style={{ width: `${fatPct}%` }} 
+                className="bg-emerald-500 h-full transition-all duration-300"
+                title={`ไขมัน: ${fatGrams}g (${fatCals} kcal)`}
+              />
+            </div>
+
+            {/* Quick split buttons */}
+            <div className="grid grid-cols-4 gap-1 pt-0.5">
+              {[
+                { name: 'High Protein', p: 0.35, c: 0.40, f: 0.25 },
+                { name: 'Balanced', p: 0.25, c: 0.50, f: 0.25 },
+                { name: 'Low Carb', p: 0.30, c: 0.20, f: 0.50 },
+                { name: 'High Carb', p: 0.20, c: 0.60, f: 0.20 }
+              ].map((split, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleApplyMacroSplit(split.p, split.c, split.f, split.name)}
+                  className="text-[10px] font-bold py-1 px-1 rounded-lg bg-white hover:bg-orange-50 text-neutral-600 hover:text-orange-700 border border-neutral-200 hover:border-orange-200 transition-all cursor-pointer text-center truncate"
+                >
+                  {split.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. COMPACT ACTION BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleSaveAndApplyGoals}
+              className="flex-1 py-2.5 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-98 text-white font-black text-xs sm:text-sm shadow-sm shadow-orange-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Save size={16} />
+              <span>💾 บันทึกเป้าหมายสารอาหาร</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCalculateWithAI}
+              disabled={isCalculatingAI}
+              className="py-2.5 px-3 rounded-xl sm:rounded-2xl bg-neutral-900 hover:bg-black active:scale-98 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+            >
+              {isCalculatingAI ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-white" />
+                  <span>AI กำลังวิเคราะห์...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} className="text-amber-300" />
+                  <span>✨ AI คำนวณ</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetToBaseline}
+              className="py-2.5 px-3 rounded-xl sm:rounded-2xl bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-600 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0"
+              title="รีเซ็ตเป็นค่ามาตรฐานเวชศาสตร์การกีฬา"
+            >
+              <RotateCcw size={13} />
+              <span>รีเซ็ต</span>
+            </button>
+          </div>
+
+          {/* 6. COLLAPSIBLE AI EXPLANATION DRAWER */}
+          {plan && (
+            <div className="bg-neutral-50/80 rounded-xl p-2.5 sm:p-3 border border-neutral-200/80">
+              <button
+                type="button"
+                onClick={() => setShowExplanationDetail(!showExplanationDetail)}
+                className="w-full flex items-center justify-between text-left font-bold text-xs text-neutral-800 cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Info size={14} className="text-orange-500" />
+                  <span>หลักการเวชศาสตร์การกีฬา & เคล็ดลับโภชนาการ</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-black text-orange-950">เป้าหมายแคลอรี่รวม</span>
-                    <span className={`px-2 py-0.2 rounded-md text-[10px] font-black border ${
-                      isDeficit 
-                        ? 'bg-rose-100 text-rose-800 border-rose-200' 
-                        : isSurplus 
-                          ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    }`}>
-                      {isDeficit ? `Deficit ${calorieDiffFromTdee} kcal` : isSurplus ? `Surplus +${calorieDiffFromTdee} kcal` : 'สมดุล TDEE'}
+                {showExplanationDetail ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </button>
+
+              {showExplanationDetail && (
+                <div className="mt-2.5 pt-2.5 border-t border-neutral-200 text-xs text-neutral-600 space-y-2 animate-in fade-in duration-200">
+                  <p className="leading-relaxed text-neutral-700 font-medium">
+                    {userProfile.aiExplanation || plan.explanation}
+                  </p>
+
+                  <div className="space-y-1 pt-1">
+                    {((userProfile.aiKeyTips && userProfile.aiKeyTips.length > 0) ? userProfile.aiKeyTips : plan.keyTips).map((tip, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5 text-[11px] text-neutral-700">
+                        <span className="text-orange-500 font-bold shrink-0">•</span>
+                        <span>{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1.5 text-[11px] text-neutral-500 font-medium border-t border-neutral-100">
+                    <span className="flex items-center gap-1 text-blue-700 font-bold">
+                      <Droplet size={11} className="text-blue-500" /> น้ำดื่ม: ~{(plan.waterMl / 1000).toFixed(1)} ลิตร/วัน
                     </span>
+                    <span>🧂 โซเดียม &lt; 2,000 mg</span>
+                    <span>🍬 น้ำตาล &lt; 25 g</span>
                   </div>
-                  <span className="text-[11px] text-orange-900/80 font-medium block mt-0.5">
-                    คำนวณจากสารอาหารจริง 4P + 4C + 9F
-                  </span>
                 </div>
-              </div>
-
-              <div className="text-right shrink-0 bg-white px-2.5 py-1.5 rounded-xl border border-orange-300 shadow-2xs">
-                <div className="text-xl sm:text-2xl font-black text-orange-600 leading-none">
-                  {computedTotalCals.toLocaleString()}
-                </div>
-                <span className="text-[10px] text-orange-500 font-bold block mt-0.5">
-                  kcal / วัน
-                </span>
-              </div>
-            </div>
-
-            {/* Stepper & Numeric Input for Direct Calorie Adjustment */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleTargetCaloriesChange(computedTotalCals - 50)}
-                  className="w-11 h-11 rounded-xl bg-white hover:bg-orange-100 text-orange-700 border border-orange-200 flex items-center justify-center font-black text-xs active:scale-95 transition-all shrink-0 cursor-pointer shadow-2xs"
-                  title="ลด 50 kcal"
-                >
-                  -50
-                </button>
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    step="50"
-                    min="800"
-                    max="5000"
-                    inputMode="numeric"
-                    value={targetCalories}
-                    onChange={(e) => handleTargetCaloriesChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-white border border-orange-300 rounded-xl pl-3 pr-20 py-2 text-left text-lg font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition-all"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-orange-400 pointer-events-none">
-                    kcal/วัน
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleTargetCaloriesChange(computedTotalCals + 50)}
-                  className="w-11 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center font-black text-xs active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs shadow-orange-500/30"
-                  title="เพิ่ม 50 kcal"
-                >
-                  +50
-                </button>
-              </div>
-
-              {/* Quick Macro Ratio Presets */}
-              <div className="pt-1 border-t border-orange-200/60">
-                <span className="text-[10px] font-bold text-orange-950 block mb-1">
-                  เกลี่ยสารอาหารอัตโนมัติตามสัดส่วนยอดนิยม:
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                  {[
-                    { name: 'High Protein', p: 0.35, c: 0.40, f: 0.25 },
-                    { name: 'Balanced', p: 0.25, c: 0.50, f: 0.25 },
-                    { name: 'Low Carb', p: 0.30, c: 0.20, f: 0.50 },
-                    { name: 'High Carb', p: 0.20, c: 0.60, f: 0.20 }
-                  ].map((split, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleApplyMacroSplit(split.p, split.c, split.f, split.name)}
-                      className="text-[10px] font-bold py-1 px-1.5 rounded-lg bg-white hover:bg-orange-50 text-neutral-700 hover:text-orange-700 border border-orange-200 transition-all cursor-pointer text-center truncate"
-                    >
-                      {split.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* 5. VISUAL MACRO ENERGY DISTRIBUTION BAR */}
-      <div className="bg-neutral-50 rounded-2xl p-3 sm:p-4 border border-neutral-200 space-y-2">
-        <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-1">
-          <span className="text-neutral-700 flex items-center gap-1.5 flex-wrap">
-            <span>สัดส่วนพลังงาน (P/C/F):</span>
-            <span className="text-blue-700 font-black">P {proteinPct}% ({proteinGrams}g)</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-amber-700 font-black">C {carbsPct}% ({carbsGrams}g)</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-emerald-700 font-black">F {fatPct}% ({fatGrams}g)</span>
-          </span>
-          <span className="text-orange-600 font-black">
-            รวม {computedTotalCals.toLocaleString()} kcal
-          </span>
-        </div>
-
-        <div className="w-full h-3.5 bg-neutral-200 rounded-full overflow-hidden flex shadow-inner">
-          <div 
-            style={{ width: `${proteinPct}%` }} 
-            className="bg-blue-600 h-full transition-all duration-300"
-            title={`โปรตีน: ${proteinGrams}g (${proteinCals} kcal)`}
-          />
-          <div 
-            style={{ width: `${carbsPct}%` }} 
-            className="bg-amber-500 h-full transition-all duration-300"
-            title={`คาร์โบไฮเดรต: ${carbsGrams}g (${carbsCals} kcal)`}
-          />
-          <div 
-            style={{ width: `${fatPct}%` }} 
-            className="bg-emerald-500 h-full transition-all duration-300"
-            title={`ไขมัน: ${fatGrams}g (${fatCals} kcal)`}
-          />
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center justify-between text-[11px] text-neutral-500 pt-0.5">
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
-            <span>โปรตีน ({proteinCals} kcal)</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-            <span>คาร์บ ({carbsCals} kcal)</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-            <span>ไขมัน ({fatCals} kcal)</span>
-          </span>
-        </div>
-      </div>
-
-      {/* 6. ACTION BUTTONS: SAVE & AI TRIGGERS */}
-      <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-        {/* Main Save Button */}
-        <button
-          type="button"
-          onClick={handleSaveAndApplyGoals}
-          className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 active:scale-98 text-white font-black text-sm shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
-        >
-          <Save size={18} />
-          <span>💾 บันทึกและนำเป้าหมายนี้ไปใช้ทั่วทั้งแอป</span>
-        </button>
-
-        {/* AI Re-Analyze Button */}
-        <button
-          type="button"
-          onClick={handleCalculateWithAI}
-          disabled={isCalculatingAI}
-          className="py-3 px-4 rounded-2xl bg-neutral-900 hover:bg-black active:scale-98 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-60 shrink-0"
-        >
-          {isCalculatingAI ? (
-            <>
-              <Loader2 size={16} className="animate-spin text-white" />
-              <span>AI กำลังวิเคราะห์...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={16} className="text-amber-300" />
-              <span>✨ AI ช่วยวิเคราะห์สรีระ</span>
-            </>
-          )}
-        </button>
-
-        {/* Reset Button */}
-        <button
-          type="button"
-          onClick={handleResetToBaseline}
-          className="py-3 px-3.5 rounded-2xl bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
-          title="รีเซ็ตเป็นค่ามาตรฐานเวชศาสตร์การกีฬา"
-        >
-          <RotateCcw size={14} />
-          <span>รีเซ็ต</span>
-        </button>
-      </div>
-
-      {/* 7. AI Explanation Accordion */}
-      {plan && (
-        <div className="bg-neutral-50/80 rounded-2xl p-3.5 sm:p-4 border border-neutral-200/80">
-          <button
-            type="button"
-            onClick={() => setShowExplanationDetail(!showExplanationDetail)}
-            className="w-full flex items-center justify-between text-left font-bold text-xs text-neutral-800 cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <Info size={15} className="text-orange-500" />
-              <span>หลักการทางเวชศาสตร์การกีฬา & เคล็ดลับโภชนาการสำหรับคุณ</span>
-            </div>
-            {showExplanationDetail ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showExplanationDetail && (
-            <div className="mt-3 pt-3 border-t border-neutral-200 text-xs text-neutral-600 space-y-2.5 animate-in fade-in duration-200">
-              <p className="leading-relaxed text-neutral-700 font-medium">
-                {userProfile.aiExplanation || plan.explanation}
-              </p>
-
-              {/* Key Tips */}
-              <div className="space-y-1.5 pt-1">
-                {((userProfile.aiKeyTips && userProfile.aiKeyTips.length > 0) ? userProfile.aiKeyTips : plan.keyTips).map((tip, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-[11px] text-neutral-700">
-                    <span className="text-orange-500 font-bold shrink-0">•</span>
-                    <span>{tip}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-neutral-500 font-medium border-t border-neutral-100">
-                <span className="flex items-center gap-1 text-blue-700 font-bold">
-                  <Droplet size={12} className="text-blue-500" /> น้ำดื่มแนะนำ: ~{(plan.waterMl / 1000).toFixed(1)} ลิตร/วัน
-                </span>
-                <span>🧂 โซเดียม &lt; 2,000 mg/วัน</span>
-                <span>🍬 น้ำตาล &lt; 25 g/วัน</span>
-              </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+
         </div>
       )}
     </div>
