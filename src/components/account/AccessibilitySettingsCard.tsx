@@ -86,27 +86,27 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
   };
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-5 transition-all">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-neutral-100 space-y-3.5 transition-all">
       {/* Header */}
       <div 
         onClick={onToggleExpand}
-        className={`flex items-center justify-between ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+        className={`flex items-center justify-between gap-2.5 ${isCardExpanded ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-            <Eye size={20} />
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <Eye size={18} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-neutral-900 leading-tight group-hover:text-purple-700 transition-colors">
-                การเข้าถึง & โหมดแสดงผล (Accessibility)
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-sm sm:text-base font-bold text-neutral-900 leading-tight group-hover:text-purple-700 transition-colors truncate">
+                การเข้าถึง & โหมดแสดงผล
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
-                100% ใช้งานได้จริง
+              <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-black shrink-0">
+                พร้อมใช้งาน
               </span>
             </div>
-            <p className="text-xs text-neutral-500 font-medium mt-0.5">
-              ปรับธีมมืด OLED, เซเปียถนอมสายตา, ขนาดฟอนต์ และระบบสังเคราะห์เสียง
+            <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+              ธีมมืด OLED, เซเปีย, ขนาดฟอนต์ และเสียงอ่าน
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
               handleReset();
             }}
             title="รีเซ็ตค่ามาตรฐาน"
-            className="px-2.5 py-1.5 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
           >
             <RotateCcw size={13} />
             <span className="hidden sm:inline">รีเซ็ต</span>
@@ -132,10 +132,10 @@ export const AccessibilitySettingsCard: React.FC<AccessibilitySettingsCardProps>
                 e.stopPropagation();
                 onToggleExpand();
               }}
-              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
               title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
             >
-              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {isCardExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
           )}
         </div>

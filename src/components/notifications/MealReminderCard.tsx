@@ -65,26 +65,26 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-neutral-100 space-y-3.5">
       {/* Header */}
       <div 
         onClick={onToggleExpand}
-        className={`flex items-start justify-between gap-2 ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+        className={`flex items-center justify-between gap-2.5 ${isCardExpanded ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
             settings.enabled 
               ? 'bg-orange-50 text-orange-600' 
               : 'bg-neutral-100 text-neutral-400'
           }`}>
-            {settings.enabled ? <BellRing size={20} className="text-orange-500" /> : <BellOff size={20} />}
+            {settings.enabled ? <BellRing size={18} className="text-orange-500" /> : <BellOff size={18} />}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-neutral-900 text-base group-hover:text-orange-600 transition-colors">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="font-bold text-neutral-900 text-sm sm:text-base group-hover:text-orange-600 transition-colors truncate">
                 ระบบแจ้งเตือนมื้ออาหาร
               </h3>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full shrink-0 ${
                 settings.enabled && permission === 'granted'
                   ? 'bg-emerald-100 text-emerald-800'
                   : settings.enabled
@@ -98,8 +98,8 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
                   : 'ปิดอยู่'}
               </span>
             </div>
-            <p className="text-xs text-neutral-500 font-medium mt-0.5">
-              เตือนสแกนและบันทึกอาหารเช้า เที่ยง เย็น ผ่าน Notification API
+            <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+              เตือนสแกนและบันทึกอาหารเช้า เที่ยง เย็น
             </p>
           </div>
         </div>
@@ -111,10 +111,10 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
               e.stopPropagation();
               onOpenSettings();
             }}
-            className="p-2 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-500 hover:text-orange-600 border border-neutral-200 hover:border-orange-200 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-500 hover:text-orange-600 border border-neutral-200 hover:border-orange-200 transition-colors"
             title="ตั้งค่าเวลาแจ้งเตือน"
           >
-            <Settings2 size={16} />
+            <Settings2 size={15} />
           </button>
 
           {onToggleExpand && (
@@ -124,10 +124,10 @@ export const MealReminderCard: React.FC<MealReminderCardProps> = ({
                 e.stopPropagation();
                 onToggleExpand();
               }}
-              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
               title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
             >
-              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {isCardExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
           )}
         </div>

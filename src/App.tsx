@@ -4098,317 +4098,389 @@ export default function App() {
           )}
 
           {activeTab === 'account' && (
-            <div className="p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300 max-w-4xl mx-auto w-full">
-              {/* Account Master Bar with Expand / Collapse All Controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-1 sm:mb-2 bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-neutral-100 shadow-2xs">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">ข้อมูลบัญชีผู้ใช้</h1>
-                  <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                    ปรับแต่งสรีระ สารอาหาร และการตั้งค่าระบบ (เปิด {Object.values(accountExpandedSections).filter(Boolean).length}/8 หมวด)
-                  </p>
+            <div className="p-3 sm:p-5 flex flex-col gap-3 sm:gap-4 animate-in fade-in duration-300 max-w-4xl mx-auto w-full">
+              {/* Account Hero Bar with Live Biometrics Summary & Expand/Collapse Toggle */}
+              <div className="bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-md shadow-orange-500/15 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                      {currentGoogleUser?.picture ? (
+                        <img 
+                          src={currentGoogleUser.picture} 
+                          alt={currentGoogleUser.name} 
+                          className="w-full h-full rounded-2xl object-cover" 
+                        />
+                      ) : (
+                        <User size={22} className="text-white" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h1 className="text-base sm:text-lg font-black tracking-tight text-white truncate">
+                          {currentGoogleUser?.name || 'โปรไฟล์ผู้ใช้ GooKal'}
+                        </h1>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white backdrop-blur-xs border border-white/20 shrink-0">
+                          {currentGoogleUser ? 'Google Sync ✓' : 'โหมดในเครื่อง'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] sm:text-xs text-orange-100/90 font-medium truncate mt-0.5">
+                        {currentGoogleUser?.email || 'ปรับแต่งสรีระ โภชนาการ และการตั้งค่าระบบ'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Master Expand / Collapse Switch */}
+                  <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl backdrop-blur-xs border border-white/20 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleExpandAllAccountSections}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 ${
+                        Object.values(accountExpandedSections).every(Boolean)
+                          ? 'bg-white text-orange-600 shadow-xs'
+                          : 'text-white/90 hover:text-white'
+                      }`}
+                      title="ขยายทุกหมวด"
+                    >
+                      <ChevronDown size={13} />
+                      <span className="hidden xs:inline">ขยาย</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCollapseAllAccountSections}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 ${
+                        Object.values(accountExpandedSections).every(v => !v)
+                          ? 'bg-neutral-900 text-white shadow-xs'
+                          : 'text-white/90 hover:text-white'
+                      }`}
+                      title="ยุบทุกหมวด"
+                    >
+                      <ChevronUp size={13} />
+                      <span className="hidden xs:inline">ยุบ</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Master Expand / Collapse Controls */}
-                <div className="flex items-center gap-1.5 self-start sm:self-auto bg-neutral-100 p-1 rounded-xl border border-neutral-200">
-                  <button
-                    type="button"
-                    onClick={handleExpandAllAccountSections}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 ${
-                      Object.values(accountExpandedSections).every(Boolean)
-                        ? 'bg-orange-500 text-white shadow-2xs'
-                        : 'bg-white hover:bg-neutral-50 text-neutral-700 shadow-2xs'
-                    }`}
-                    title="ขยายทุกหมวดในหน้าบัญชี"
-                  >
-                    <ChevronDown size={14} />
-                    <span>ขยายทั้งหมด</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCollapseAllAccountSections}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 ${
-                      Object.values(accountExpandedSections).every(v => !v)
-                        ? 'bg-neutral-900 text-white shadow-2xs'
-                        : 'bg-white hover:bg-neutral-50 text-neutral-700 shadow-2xs'
-                    }`}
-                    title="ยุบทุกหมวดในหน้าบัญชี"
-                  >
-                    <ChevronUp size={14} />
-                    <span>ยุบทั้งหมด</span>
-                  </button>
+                {/* Quick Profile Metabolic Chips Bar */}
+                <div className="grid grid-cols-2 xs:grid-cols-4 gap-1.5 pt-1 text-xs">
+                  <div className="bg-white/15 backdrop-blur-xs rounded-xl px-2.5 py-1.5 border border-white/15 flex items-center justify-between">
+                    <span className="text-orange-100 text-[10px] font-medium">น้ำหนัก</span>
+                    <span className="font-black text-white">{userProfile.weight || 60} kg</span>
+                  </div>
+                  <div className="bg-white/15 backdrop-blur-xs rounded-xl px-2.5 py-1.5 border border-white/15 flex items-center justify-between">
+                    <span className="text-orange-100 text-[10px] font-medium">BMR</span>
+                    <span className="font-black text-white">{bmr.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-white/15 backdrop-blur-xs rounded-xl px-2.5 py-1.5 border border-white/15 flex items-center justify-between">
+                    <span className="text-orange-100 text-[10px] font-medium">TDEE</span>
+                    <span className="font-black text-white">{tdee.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-white/25 backdrop-blur-xs rounded-xl px-2.5 py-1.5 border border-white/25 flex items-center justify-between shadow-xs">
+                    <span className="text-white text-[10px] font-bold">เป้าหมาย</span>
+                    <span className="font-black text-white">{dailyGoal.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
               {/* 1. Google Account Status Card (Collapsible) */}
-              <div className="bg-gradient-to-br from-white to-neutral-50/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-200/80 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
                 <div 
                   onClick={() => toggleAccountSection('google_auth')}
-                  className={`flex items-start sm:items-center justify-between gap-3 ${accountExpandedSections.google_auth ? 'border-b border-neutral-100 pb-3 sm:pb-4' : ''} cursor-pointer select-none group`}
+                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.google_auth ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
                 >
-                  <div className="flex items-center gap-3.5">
-                    {currentGoogleUser ? (
-                      <div 
-                        className="relative group cursor-pointer" 
-                        onClick={(e) => { e.stopPropagation(); profilePicInputRef.current?.click(); }}
-                        title="เปลี่ยนรูปโปรไฟล์"
-                      >
-                        <img 
-                          src={currentGoogleUser.picture} 
-                          alt={currentGoogleUser.name} 
-                          className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl object-cover ring-2 ring-orange-200 shadow-xs group-hover:opacity-60 transition-opacity"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Camera size={18} className="text-neutral-800 drop-shadow-md" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-400 group-hover:scale-105 transition-transform">
-                        <User size={22} />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-black text-neutral-900 group-hover:text-orange-600 transition-colors">
-                          {currentGoogleUser ? currentGoogleUser.name : 'บัญชี Google & ข้อมูลผู้ใช้'}
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                      <User size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h2 className="text-sm sm:text-base font-bold text-neutral-900 group-hover:text-orange-600 transition-colors truncate">
+                          {currentGoogleUser ? currentGoogleUser.name : 'บัญชี Google & สำรองคลาวด์'}
                         </h2>
                         {currentGoogleUser ? (
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200 shrink-0">
                             เชื่อมต่อแล้ว ✓
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
-                            ยังไม่เชื่อมต่อ
+                          <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.2 rounded-full shrink-0">
+                            ออฟไลน์
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                        {currentGoogleUser ? currentGoogleUser.email : 'เข้าสู่ระบบด้วย Google เพื่อสำรองข้อมูลและแยกโปรไฟล์เฉพาะคุณ'}
+                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+                        {currentGoogleUser ? currentGoogleUser.email : 'เข้าสู่ระบบด้วย Google เพื่อสำรองข้อมูลทุกอุปกรณ์'}
                       </p>
-                      {currentGoogleUser?.loginTimestamp && (
-                        <p className="text-[10px] text-neutral-400 mt-0.5">
-                          เข้าสู่ระบบเมื่อ: {formatDateDMY(new Date(currentGoogleUser.loginTimestamp))}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleAccountSection('google_auth');
                       }}
-                      className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title={accountExpandedSections.google_auth ? 'ยุบหมวด' : 'ขยายหมวด'}
                     >
-                      {accountExpandedSections.google_auth ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {accountExpandedSections.google_auth ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                   </div>
                 </div>
 
                 {accountExpandedSections.google_auth && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
-                      <div className="text-xs text-neutral-600">
-                        {currentGoogleUser ? (
-                          <p>ข้อมูลของคุณจะถูกบันทึกแยกโปรไฟล์ตามบัญชี Google ID นี้อย่างปลอดภัย</p>
-                        ) : (
-                          <p>เมื่อเชื่อมต่อ Google บัญชีนี้ คุณจะสามารถเรียกดูประวัติอาหารและผลการวิเคราะห์จากอุปกรณ์ใดก็ได้</p>
-                        )}
+                  <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-neutral-50/80 rounded-xl p-2.5 border border-neutral-100">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${cloudSyncStatus === 'syncing' ? 'bg-amber-500 animate-ping' : cloudSyncStatus === 'synced' ? 'bg-emerald-500' : 'bg-neutral-300'}`} />
+                        <div className="text-[11px] text-neutral-600 font-medium">
+                          <span className="font-bold text-neutral-800">
+                            {cloudSyncStatus === 'syncing' ? 'กำลังซิงค์ข้อมูล...' : cloudSyncStatus === 'synced' ? 'ซิงค์กับคลาวด์แล้ว' : 'พร้อมซิงค์ข้อมูล'}
+                          </span>
+                          {lastCloudSyncTime && (
+                            <span className="text-neutral-400 block text-[10px]">
+                              ล่าสุด: {lastCloudSyncTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                      <div className="flex items-center gap-1.5">
                         {currentGoogleUser ? (
                           <>
                             <button
                               type="button"
-                              onClick={() => setShowGoogleLoginModal(true)}
-                              className="px-3.5 py-2 bg-white hover:bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 transition-all cursor-pointer shadow-2xs"
+                              disabled={isSyncingWithCloud}
+                              onClick={() => triggerManualCloudSync()}
+                              className="px-2.5 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
-                              สลับบัญชี Google
+                              <RefreshCw size={12} className={isSyncingWithCloud ? 'animate-spin' : ''} />
+                              <span>{isSyncingWithCloud ? 'ซิงค์...' : 'ซิงค์ทันที'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowGoogleLoginModal(true)}
+                              className="px-2.5 py-1.5 bg-white hover:bg-neutral-100 border border-neutral-200 rounded-lg text-xs font-bold text-neutral-700 transition-all cursor-pointer shadow-2xs"
+                            >
+                              สลับบัญชี
                             </button>
                             <button
                               type="button"
                               onClick={handleGoogleLogout}
-                              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 transition-all cursor-pointer shadow-2xs"
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-xs font-bold text-rose-600 transition-all cursor-pointer"
                             >
-                              ออกจากระบบ
+                              ออกระบบ
                             </button>
                           </>
                         ) : (
                           <button
                             type="button"
                             onClick={() => setShowGoogleLoginModal(true)}
-                            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs shadow-orange-500/20 flex items-center gap-1.5"
+                            className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs shadow-orange-500/20 flex items-center gap-1.5"
                           >
-                            <LogIn size={15} />
+                            <LogIn size={13} />
                             <span>เข้าสู่ระบบด้วย Google</span>
                           </button>
                         )}
                       </div>
                     </div>
-
-                    {currentGoogleUser && (
-                      <div className="pt-3.5 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full ${cloudSyncStatus === 'syncing' ? 'bg-amber-500 animate-ping' : cloudSyncStatus === 'synced' ? 'bg-emerald-500' : 'bg-neutral-300'}`} />
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
-                            <Cloud size={14} className="text-indigo-600" />
-                            <span>
-                              {cloudSyncStatus === 'syncing' 
-                                ? 'กำลังเชื่อมต่อและซิงค์ข้อมูลกับคลาวด์...' 
-                                : cloudSyncStatus === 'synced' 
-                                ? 'ซิงค์ข้อมูลกับคลาวด์แล้ว (เปิดได้ทุกอุปกรณ์/เบราว์เซอร์)' 
-                                : 'ระบบคลาวด์พร้อมซิงค์'}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          disabled={isSyncingWithCloud}
-                          onClick={() => triggerManualCloudSync()}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                        >
-                          <RefreshCw size={12} className={isSyncingWithCloud ? 'animate-spin' : ''} />
-                          <span>{isSyncingWithCloud ? 'กำลังซิงค์...' : 'ซิงค์ทันที'}</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
               {/* 2. Biological Profile & Physical Metrics (Collapsible) */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
                 <div 
                   onClick={() => toggleAccountSection('biological_profile')}
-                  className={`flex items-start sm:items-center justify-between gap-3 ${accountExpandedSections.biological_profile ? 'border-b border-neutral-100 pb-3' : ''} cursor-pointer select-none group`}
+                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.biological_profile ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                      <Scale size={20} />
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                      <Scale size={18} />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-base font-bold text-neutral-900 group-hover:text-orange-600 transition-colors">
-                          ข้อมูลสรีระพื้นฐาน
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h2 className="text-sm sm:text-base font-bold text-neutral-900 group-hover:text-orange-600 transition-colors truncate">
+                          ข้อมูลสรีระพื้นฐาน (Biometrics)
                         </h2>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                        <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-neutral-100 text-neutral-600 shrink-0">
                           {userProfile.gender === 'female' ? 'หญิง' : 'ชาย'} {userProfile.age} ปี • {userProfile.weight} kg
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                        ใช้เป็นฐานในการคำนวณอัตราเผาผลาญ BMR & TDEE
+                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+                        คำนวณอัตราเผาผลาญ BMR {bmr.toLocaleString()} • TDEE {tdee.toLocaleString()} kcal
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-50 border border-neutral-200 text-xs font-semibold text-neutral-600">
-                      <span>BMI: {bmi}</span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${bmiStatus.bg} ${bmiStatus.color}`}>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-50 border border-neutral-200 text-[11px] font-bold text-neutral-600">
+                      <span>BMI {bmi}</span>
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded ${bmiStatus.bg} ${bmiStatus.color}`}>
                         {bmiStatus.text}
                       </span>
                     </div>
-                    <span className="hidden sm:inline text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-xl border border-orange-200">
-                      TDEE {tdee.toLocaleString()} kcal
-                    </span>
+
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleAccountSection('biological_profile');
                       }}
-                      className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title={accountExpandedSections.biological_profile ? 'ยุบหมวด' : 'ขยายหมวด'}
                     >
-                      {accountExpandedSections.biological_profile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {accountExpandedSections.biological_profile ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                   </div>
                 </div>
 
                 {accountExpandedSections.biological_profile && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 mb-1">เพศ</label>
-                      <div className="flex gap-2">
-                        <button type="button" 
-                          onClick={() => saveProfile({...userProfile, gender: 'male'}, true)}
-                          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${userProfile.gender === 'male' ? 'bg-orange-100 text-orange-600 border border-orange-200 shadow-2xs' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-transparent'}`}
-                        >ชาย</button>
-                        <button type="button" 
-                          onClick={() => saveProfile({...userProfile, gender: 'female'}, true)}
-                          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${userProfile.gender === 'female' ? 'bg-orange-100 text-orange-600 border border-orange-200 shadow-2xs' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-transparent'}`}
-                        >หญิง</button>
+                  <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
+                    {/* Compact 2-Column Responsive Inputs Grid */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      {/* Gender Selector */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">เพศกำเนิด</label>
+                        <div className="grid grid-cols-2 gap-1 bg-neutral-100 p-0.5 rounded-xl border border-neutral-200">
+                          <button
+                            type="button"
+                            onClick={() => saveProfile({...userProfile, gender: 'male'}, true)}
+                            className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                              userProfile.gender === 'male' 
+                                ? 'bg-orange-500 text-white shadow-2xs' 
+                                : 'text-neutral-600 hover:text-neutral-900'
+                            }`}
+                          >
+                            <span>ชาย ♂</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveProfile({...userProfile, gender: 'female'}, true)}
+                            className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                              userProfile.gender === 'female' 
+                                ? 'bg-orange-500 text-white shadow-2xs' 
+                                : 'text-neutral-600 hover:text-neutral-900'
+                            }`}
+                          >
+                            <span>หญิง ♀</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 mb-1">อายุ (ปี)</label>
-                      <input type="number" value={userProfile.age || 59} 
-                        onChange={(e) => {
-                          const updated = { ...userProfile, age: Number(e.target.value) };
-                          setUserProfile(updated);
-                          saveProfile(updated);
-                        }} 
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className="block text-xs font-bold text-neutral-500 mb-1">น้ำหนักปัจจุบัน (กก.)</label>
-                        <input type="number" value={userProfile.weight || 59} 
-                          onChange={(e) => {
-                            const updated = { ...userProfile, weight: Number(e.target.value) };
-                            setUserProfile(updated);
-                            saveProfile(updated);
-                          }} 
-                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
+
+                      {/* Age Input */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">อายุ (ปี)</label>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            min="10" 
+                            max="120"
+                            value={userProfile.age || 59} 
+                            onChange={(e) => {
+                              const updated = { ...userProfile, age: Number(e.target.value) };
+                              setUserProfile(updated);
+                              saveProfile(updated);
+                            }} 
+                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">ปี</span>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <label className="block text-xs font-bold text-orange-600 mb-1">น้ำหนักเป้าหมาย (กก.)</label>
-                        <input type="number" value={userProfile.targetWeight || 59} 
-                          onChange={(e) => {
-                            const updated = { ...userProfile, targetWeight: Number(e.target.value) };
-                            setUserProfile(updated);
-                            saveProfile(updated);
-                          }} 
-                          className="w-full bg-orange-50/50 border border-orange-200 rounded-xl px-4 py-2.5 text-sm font-bold text-orange-700 focus:outline-none focus:border-orange-500" />
+
+                      {/* Current Weight */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">น้ำหนักปัจจุบัน</label>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            step="0.1"
+                            min="25"
+                            max="300"
+                            value={userProfile.weight || 59} 
+                            onChange={(e) => {
+                              const updated = { ...userProfile, weight: Number(e.target.value) };
+                              setUserProfile(updated);
+                              saveProfile(updated);
+                            }} 
+                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">กก.</span>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 mb-1">ส่วนสูง (ซม.)</label>
-                      <input type="number" value={userProfile.height || 167} 
-                        onChange={(e) => {
-                          const updated = { ...userProfile, height: Number(e.target.value) };
-                          setUserProfile(updated);
-                          saveProfile(updated);
-                        }} 
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 mb-1">ระดับกิจกรรมในชีวิตประจำวัน</label>
-                      <select 
-                        value={userProfile.activityLevel || 1.375} 
-                        onChange={(e) => saveProfile({...userProfile, activityLevel: Number(e.target.value)}, true)}
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500"
-                      >
-                        <option value={1.2}>ไม่ออกกำลังกายเลย / นั่งโต๊ะทำงานเป็นหลัก (1.2)</option>
-                        <option value={1.375}>ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์ (1.375)</option>
-                        <option value={1.55}>ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์ (1.55)</option>
-                        <option value={1.725}>ออกกำลังกายหนัก 6-7 วัน/สัปดาห์ (1.725)</option>
-                        <option value={1.9}>ออกกำลังกายหนักมาก / นักกีฬาฝึกซ้อมทุกวัน (1.9)</option>
-                      </select>
+
+                      {/* Target Weight */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-orange-700 mb-1">น้ำหนักเป้าหมาย</label>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            step="0.1"
+                            min="25"
+                            max="300"
+                            value={userProfile.targetWeight || 59} 
+                            onChange={(e) => {
+                              const updated = { ...userProfile, targetWeight: Number(e.target.value) };
+                              setUserProfile(updated);
+                              saveProfile(updated);
+                            }} 
+                            className="w-full bg-orange-50/50 border border-orange-300 hover:border-orange-400 rounded-xl pl-3 pr-8 py-2 text-xs font-black text-orange-700 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-orange-500 pointer-events-none">กก.</span>
+                        </div>
+                      </div>
+
+                      {/* Height */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">ส่วนสูง (ซม.)</label>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            min="80"
+                            max="250"
+                            value={userProfile.height || 167} 
+                            onChange={(e) => {
+                              const updated = { ...userProfile, height: Number(e.target.value) };
+                              setUserProfile(updated);
+                              saveProfile(updated);
+                            }} 
+                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">ซม.</span>
+                        </div>
+                      </div>
+
+                      {/* Activity Level */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">ระดับกิจกรรม</label>
+                        <select 
+                          value={userProfile.activityLevel || 1.375} 
+                          onChange={(e) => saveProfile({...userProfile, activityLevel: Number(e.target.value)}, true)}
+                          className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl px-2.5 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all cursor-pointer"
+                        >
+                          <option value={1.2}>ไม่ออกกำลังกายเลย (1.2)</option>
+                          <option value={1.375}>ออกกำลังกายเบา 1-3 วัน/สัปดาห์ (1.375)</option>
+                          <option value={1.55}>ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์ (1.55)</option>
+                          <option value={1.725}>ออกกำลังกายหนัก 6-7 วัน/สัปดาห์ (1.725)</option>
+                          <option value={1.9}>นักกีฬาฝึกซ้อมทุกวัน (1.9)</option>
+                        </select>
+                      </div>
                     </div>
 
                     {/* Live Metabolic Preview Strip */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100 flex flex-col">
-                        <span className="text-[11px] font-bold text-neutral-400">อัตราเผาผลาญพื้นฐาน (BMR)</span>
-                        <span className="text-sm font-black text-neutral-800 mt-0.5">{bmr.toLocaleString()} <span className="text-[10px] font-semibold text-neutral-400">kcal/วัน</span></span>
+                    <div className="bg-gradient-to-r from-neutral-50 to-orange-50/50 rounded-xl p-2.5 border border-orange-100 flex items-center justify-between text-xs flex-wrap gap-1">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span className="text-neutral-500 text-[11px]">BMR:</span>
+                        <span className="text-neutral-900 font-black">{bmr.toLocaleString()} kcal</span>
+                        <span className="text-neutral-300">•</span>
+                        <span className="text-orange-600 text-[11px]">TDEE:</span>
+                        <span className="text-orange-700 font-black">{tdee.toLocaleString()} kcal</span>
                       </div>
-                      <div className="bg-orange-50/60 rounded-2xl p-3 border border-orange-100/80 flex flex-col">
-                        <span className="text-[11px] font-bold text-orange-600">เผาผลาญรวมต่อวัน (TDEE)</span>
-                        <span className="text-sm font-black text-orange-700 mt-0.5">{tdee.toLocaleString()} <span className="text-[10px] font-semibold text-orange-500">kcal/วัน</span></span>
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <span className="text-neutral-500">BMI:</span>
+                        <span className="font-bold text-neutral-800">{bmi}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${bmiStatus.bg} ${bmiStatus.color}`}>
+                          {bmiStatus.text}
+                        </span>
                       </div>
                     </div>
 
@@ -4421,9 +4493,9 @@ export default function App() {
                         playSuccessChime();
                         showToast('💾 บันทึกข้อมูลสรีระพื้นฐานเรียบร้อยแล้ว');
                       }}
-                      className="w-full py-3 px-4 rounded-2xl bg-neutral-900 hover:bg-black active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer mt-1"
+                      className="w-full py-2.5 px-4 rounded-xl sm:rounded-2xl bg-neutral-900 hover:bg-black active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Save size={15} />
+                      <Save size={14} />
                       <span>💾 บันทึกข้อมูลสรีระพื้นฐาน (Save Profile)</span>
                     </button>
                   </div>
@@ -4456,142 +4528,129 @@ export default function App() {
               />
 
               {/* 6. Data Export & Backup Card (Collapsible) */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
                 <div 
                   onClick={() => toggleAccountSection('data_export')}
-                  className={`flex items-start sm:items-center justify-between gap-3 ${accountExpandedSections.data_export ? 'border-b border-neutral-100 pb-3' : ''} cursor-pointer select-none group`}
+                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.data_export ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Download size={20} />
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Download size={18} />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-neutral-900 text-base group-hover:text-orange-600 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-bold text-neutral-900 text-sm sm:text-base group-hover:text-orange-600 transition-colors truncate">
                           ส่งออกข้อมูลโภชนาการ (Export Data)
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                        <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-neutral-100 text-neutral-600 shrink-0">
                           {history.length} รายการ
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                        ดาวน์โหลดประวัติและข้อมูลสุขภาพทั้งหมดของคุณเป็นไฟล์ JSON
+                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+                        ดาวน์โหลดประวัติเป็นไฟล์ JSON หรือรายงานสถิติ CSV
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleAccountSection('data_export');
                       }}
-                      className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title={accountExpandedSections.data_export ? 'ยุบหมวด' : 'ขยายหมวด'}
                     >
-                      {accountExpandedSections.data_export ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {accountExpandedSections.data_export ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                   </div>
                 </div>
 
                 {accountExpandedSections.data_export && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    <div className="bg-neutral-50 rounded-2xl p-3.5 border border-neutral-100 flex items-center justify-between text-xs font-semibold text-neutral-600">
-                      <span className="flex items-center gap-1.5">
-                        <Utensils size={14} className="text-neutral-400" />
-                        ประวัติอาหารที่บันทึก
-                      </span>
-                      <span className="bg-white px-2.5 py-1 rounded-lg border border-neutral-200 text-neutral-800 font-bold">
-                        {history.length} รายการ
-                      </span>
+                  <div className="space-y-2.5 pt-0.5 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={handleExportData}
+                        disabled={isExporting}
+                        className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-2xs ${
+                          exportSuccess 
+                            ? 'bg-emerald-600 text-white shadow-emerald-600/20' 
+                            : 'bg-neutral-900 hover:bg-black text-white active:scale-[0.99]'
+                        }`}
+                      >
+                        {exportSuccess ? (
+                          <>
+                            <Check size={14} className="text-white" />
+                            <span>ดาวน์โหลดสำเร็จ</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download size={14} />
+                            <span>ส่งออกข้อมูลทั้งหมด (.JSON)</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInsightsExportInitialSection('all');
+                          setShowInsightsExportModal(true);
+                        }}
+                        className="py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 shadow-2xs active:scale-[0.99]"
+                      >
+                        <FileSpreadsheet size={14} />
+                        <span>ส่งออกสถิติ & กราฟ (.CSV)</span>
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleExportData}
-                      disabled={isExporting}
-                      className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${
-                        exportSuccess 
-                          ? 'bg-emerald-600 text-white shadow-emerald-600/20' 
-                          : 'bg-neutral-900 hover:bg-black text-white active:scale-[0.99] shadow-neutral-900/10'
-                      }`}
-                    >
-                      {exportSuccess ? (
-                        <>
-                          <Check size={18} className="text-white" />
-                          ดาวน์โหลดไฟล์ JSON สำเร็จแล้ว
-                        </>
-                      ) : (
-                        <>
-                          <Download size={18} />
-                          ส่งออกข้อมูลทั้งหมด (.JSON)
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInsightsExportInitialSection('all');
-                        setShowInsightsExportModal(true);
-                      }}
-                      className="w-full py-3 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 shadow-xs active:scale-[0.99]"
-                    >
-                      <FileSpreadsheet size={16} />
-                      ส่งออกข้อมูลเชิงลึก & สถิติ (.CSV / .JSON / รายงาน)
-                    </button>
-
-                    <p className="text-[11px] text-neutral-400 text-center font-medium">
-                      ให้คุณเป็นเจ้าของข้อมูล 100% สามารถนำไฟล์ JSON หรือสถิติไปสำรองหรือส่งต่อให้ผู้เชี่ยวชาญได้
-                    </p>
                   </div>
                 )}
               </div>
 
               {/* 7. Data Import & Restore Card (Collapsible) */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
                 <div 
                   onClick={() => toggleAccountSection('data_import')}
-                  className={`flex items-start sm:items-center justify-between gap-3 ${accountExpandedSections.data_import ? 'border-b border-neutral-100 pb-3' : ''} cursor-pointer select-none group`}
+                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.data_import ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Upload size={20} />
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Upload size={18} />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-neutral-900 text-base group-hover:text-indigo-600 transition-colors">
-                          นำเข้าข้อมูล & กู้คืนระบบ (Import Data)
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-bold text-neutral-900 text-sm sm:text-base group-hover:text-indigo-600 transition-colors truncate">
+                          นำเข้าข้อมูล & กู้คืนระบบ (Import)
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
                           .JSON
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                        นำเข้าไฟล์ประวัติอาหาร (.JSON) หรือไฟล์สำรองข้อมูลกลับสู่ระบบ
+                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+                        นำเข้าไฟล์ประวัติอาหารหรือกู้คืนจากไฟล์สำรอง
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleAccountSection('data_import');
                       }}
-                      className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title={accountExpandedSections.data_import ? 'ยุบหมวด' : 'ขยายหมวด'}
                     >
-                      {accountExpandedSections.data_import ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {accountExpandedSections.data_import ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                   </div>
                 </div>
 
                 {accountExpandedSections.data_import && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    {/* Hidden File Input for Account Import */}
+                  <div className="space-y-2.5 pt-0.5 animate-in fade-in duration-200">
                     <input
                       type="file"
                       ref={accountImportFileRef}
@@ -4600,126 +4659,97 @@ export default function App() {
                       className="hidden"
                     />
 
-                    {/* Dropzone / Upload Box */}
-                    <div 
-                      onClick={() => accountImportFileRef.current?.click()}
-                      className="border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/70 rounded-2xl p-5 text-center cursor-pointer transition-all group active:scale-[0.99]"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-white shadow-xs border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2.5 group-hover:scale-105 transition-transform">
-                        <Upload size={22} />
-                      </div>
-                      <h4 className="text-xs font-bold text-neutral-800">
-                        คลิกเพื่อเลือกไฟล์ข้อมูลสำรอง (.JSON)
-                      </h4>
-                      <p className="text-[11px] text-neutral-400 mt-1">
-                        รองรับทั้งไฟล์ส่งออก (.JSON) จาก GooKal และไฟล์สำรองข้อมูลทั้งระบบ
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => accountImportFileRef.current?.click()}
-                        className="flex-1 py-3 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer active:scale-[0.99]"
+                        className="py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer active:scale-[0.99]"
                       >
-                        <Upload size={16} />
-                        <span>เลือกไฟล์ .JSON เพื่อนำเข้า</span>
+                        <Upload size={14} />
+                        <span>เลือกไฟล์ .JSON นำเข้า</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowBackupRestoreModal(true)}
-                        className="py-3 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200 cursor-pointer active:scale-[0.99]"
+                        className="py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200 cursor-pointer active:scale-[0.99]"
                       >
-                        <HardDrive size={16} className="text-neutral-500" />
-                        <span>ศูนย์สำรอง & กู้คืนข้อมูล</span>
+                        <HardDrive size={14} className="text-neutral-500" />
+                        <span>ศูนย์สำรอง & กู้คืน</span>
                       </button>
                     </div>
-
-                    <p className="text-[11px] text-neutral-400 text-center font-medium">
-                      เมื่อเลือกไฟล์ ระบบจะแสดงตัวอย่างข้อมูลและให้คุณเลือกว่าจะ &ldquo;ผสานรวมกับข้อมูลเดิม&rdquo; หรือ &ldquo;แทนที่ทั้งหมด&rdquo;
-                    </p>
                   </div>
                 )}
               </div>
 
               {/* 8. Offline & Service Worker Cache Status Card (Collapsible) */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-neutral-100 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
                 <div 
                   onClick={() => toggleAccountSection('offline_cache')}
-                  className={`flex items-start sm:items-center justify-between gap-3 ${accountExpandedSections.offline_cache ? 'border-b border-neutral-100 pb-3' : ''} cursor-pointer select-none group`}
+                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.offline_cache ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {isOnline ? <Wifi size={20} /> : <WifiOff size={20} />}
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                      {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-neutral-900 text-base group-hover:text-emerald-700 transition-colors">
-                          ระบบออฟไลน์ & แคช
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-bold text-neutral-900 text-sm sm:text-base group-hover:text-emerald-700 transition-colors truncate">
+                          ระบบออฟไลน์ & แคชเครื่อง
                         </h3>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                           {isOnline ? 'ออนไลน์' : 'ออฟไลน์'}
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                        {isOnline ? 'สถานะ: เชื่อมต่อออนไลน์ (Online)' : 'สถานะ: กำลังทำงานแบบออฟไลน์ (Offline)'}
+                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
+                        {isOnline ? 'เชื่อมต่อออนไลน์ พร้อมใช้งานเต็มรูปแบบ' : 'ทำงานแบบออฟไลน์ บันทึกข้อมูลลงเครื่อง'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleAccountSection('offline_cache');
                       }}
-                      className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title={accountExpandedSections.offline_cache ? 'ยุบหมวด' : 'ขยายหมวด'}
                     >
-                      {accountExpandedSections.offline_cache ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {accountExpandedSections.offline_cache ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                   </div>
                 </div>
 
                 {accountExpandedSections.offline_cache && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100">
-                        <span className="text-neutral-400 font-medium block text-[11px]">Service Worker</span>
-                        <span className="text-neutral-900 font-bold mt-0.5 flex items-center gap-1.5">
-                          <CheckCircle2 size={13} className="text-emerald-500" />
-                          เปิดใช้งานแล้ว
+                  <div className="space-y-2.5 pt-0.5 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100 flex items-center justify-between">
+                        <span className="text-neutral-500 text-[11px]">Service Worker</span>
+                        <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
+                          <CheckCircle2 size={12} className="text-emerald-500" /> ทำงาน
                         </span>
                       </div>
-                      <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100">
-                        <span className="text-neutral-400 font-medium block text-[11px]">บันทึกในเครื่อง</span>
-                        <span className="text-neutral-900 font-bold mt-0.5 flex items-center gap-1.5">
-                          <HardDrive size={13} className="text-orange-500" />
+                      <div className="bg-neutral-50 rounded-xl p-2.5 border border-neutral-100 flex items-center justify-between">
+                        <span className="text-neutral-500 text-[11px]">ประวัติในเครื่อง</span>
+                        <span className="text-neutral-900 font-black text-[11px]">
                           {history.length} รายการ
                         </span>
                       </div>
                     </div>
-
-                    <p className="text-[11px] text-neutral-400 leading-relaxed">
-                      ระบบ Service Worker ทำการแคชไฟล์แอปพลิเคชันไว้ในเครื่อง ทำให้คุณสามารถเปิดดูแดชบอร์ด ดูประวัติอาหารย้อนหลัง และส่งออกข้อมูลได้ตลอดเวลาแม้ไม่มีสัญญาณอินเทอร์เน็ต
-                    </p>
                   </div>
                 )}
               </div>
 
               {/* Danger Zone: Reset All Data */}
-              <div className="mt-2 mb-4">
+              <div className="pt-1 pb-3">
                 <button 
                   onClick={handleResetAllData}
-                  className="w-full bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 py-3.5 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-98"
+                  className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                 >
-                  <Trash2 size={18} />
-                  <span>ล้างข้อมูลทั้งหมด (Reset All Data)</span>
+                  <Trash2 size={15} />
+                  <span>ล้างข้อมูลทั้งหมดในเครื่อง (Reset All Data)</span>
                 </button>
-                <p className="text-center text-xs font-medium text-neutral-400 mt-2">
-                  ข้อมูลจะถูกลบออกจากอุปกรณ์นี้เท่านั้น
-                </p>
               </div>
             </div>
           )}
