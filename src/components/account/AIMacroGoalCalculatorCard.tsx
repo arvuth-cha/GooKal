@@ -9,7 +9,6 @@ import {
   Plus, 
   Minus, 
   Target, 
-  Scale, 
   Loader2, 
   ChevronDown, 
   ChevronUp, 
@@ -239,6 +238,12 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   const [sugarGrams, setSugarGrams] = useState<number>(userProfile.customMacros?.sugar || 24);
   const [sodiumMg, setSodiumMg] = useState<number>(userProfile.customMacros?.sodium || 2000);
 
+  // Raw string states for inputs to allow seamless typing and backspacing without cursor jumping
+  const [rawCalories, setRawCalories] = useState<string>(() => String(targetCalories));
+  const [rawProtein, setRawProtein] = useState<string>(() => String(proteinGrams));
+  const [rawCarbs, setRawCarbs] = useState<string>(() => String(carbsGrams));
+  const [rawFat, setRawFat] = useState<string>(() => String(fatGrams));
+
   // Deficit / Surplus offset relative to TDEE
   const calorieDiffFromTdee = targetCalories - tdee;
   const isDeficit = calorieDiffFromTdee < 0;
@@ -265,8 +270,10 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
       prevWeightRef.current = safeWeight;
       const newP = Math.round(proteinPerKg * safeWeight);
       setProteinGrams(newP);
+      setRawProtein(String(newP));
       const newCals = (newP * 4) + (carbsGrams * 4) + (fatGrams * 9);
       setTargetCalories(newCals);
+      setRawCalories(String(newCals));
     }
   }, [safeWeight, safeHeight, safeAge, safeGender, safeAct, selectedGoal]);
 
@@ -279,16 +286,22 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
       const s = Number(userProfile.customMacros.sugar) || 24;
       const sod = Number(userProfile.customMacros.sodium) || 2000;
       setProteinGrams(p);
+      setRawProtein(String(p));
       setProteinPerKg(Math.round((p / safeWeight) * 10) / 10);
       setCarbsGrams(c);
+      setRawCarbs(String(c));
       setFatGrams(f);
+      setRawFat(String(f));
       setSugarGrams(s);
       setSodiumMg(sod);
 
       const calculatedTotal = (p * 4) + (c * 4) + (f * 9);
-      setTargetCalories(userProfile.targetCalories || calculatedTotal);
+      const finalCals = userProfile.targetCalories || calculatedTotal;
+      setTargetCalories(finalCals);
+      setRawCalories(String(finalCals));
     } else if (userProfile.targetCalories) {
       setTargetCalories(userProfile.targetCalories);
+      setRawCalories(String(userProfile.targetCalories));
     }
   }, [userProfile.customMacros, userProfile.targetCalories]);
 
@@ -308,54 +321,63 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     setProteinPerKg(clamped);
     const newGrams = Math.round(clamped * safeWeight);
     setProteinGrams(newGrams);
+    setRawProtein(String(newGrams));
     const newTotalCals = (newGrams * 4) + (carbsGrams * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
+    setRawCalories(String(newTotalCals));
   };
 
   // 2. Protein Change via total grams/day
-  const handleProteinGramsChange = (newGrams: number) => {
+  const handleProteinGramsChange = (newGrams: number, syncRaw: boolean = true) => {
     const clamped = Math.max(20, Math.min(400, Math.round(newGrams)));
     setProteinGrams(clamped);
+    if (syncRaw) setRawProtein(String(clamped));
     const newPerKg = Math.round((clamped / safeWeight) * 10) / 10;
     setProteinPerKg(newPerKg);
     const newTotalCals = (clamped * 4) + (carbsGrams * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
+    setRawCalories(String(newTotalCals));
   };
 
   // 3. Carbs Change
-  const handleCarbsChange = (newCarbs: number) => {
+  const handleCarbsChange = (newCarbs: number, syncRaw: boolean = true) => {
     const clamped = Math.max(10, Math.min(800, Math.round(newCarbs)));
     setCarbsGrams(clamped);
+    if (syncRaw) setRawCarbs(String(clamped));
     const newTotalCals = (proteinGrams * 4) + (clamped * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
+    setRawCalories(String(newTotalCals));
   };
 
   // 4. Fat Change
-  const handleFatChange = (newFat: number) => {
+  const handleFatChange = (newFat: number, syncRaw: boolean = true) => {
     const clamped = Math.max(10, Math.min(300, Math.round(newFat)));
     setFatGrams(clamped);
+    if (syncRaw) setRawFat(String(clamped));
     const newTotalCals = (proteinGrams * 4) + (carbsGrams * 4) + (clamped * 9);
     setTargetCalories(newTotalCals);
+    setRawCalories(String(newTotalCals));
   };
 
   // 5. Change Deficit / Surplus Offset directly
   const handleSelectDeficitPreset = (preset: DeficitPreset) => {
     const newCalories = Math.max(800, tdee + preset.offset);
-    applyNewCaloriesWithLockedProtein(newCalories);
+    applyNewCaloriesWithLockedProtein(newCalories, true);
     triggerHaptic(20);
     onToast(`⚡ ปรับระดับพลังงาน: ${preset.label} (${preset.badge}) = ${newCalories.toLocaleString()} kcal/วัน`);
   };
 
   const handleAdjustDeficitStep = (stepDelta: number) => {
     const newCals = Math.max(800, targetCalories + stepDelta);
-    applyNewCaloriesWithLockedProtein(newCals);
+    applyNewCaloriesWithLockedProtein(newCals, true);
     triggerHaptic(15);
   };
 
   // 6. Reverse Calculation: When Target Calories Change, recalculate Carbs and Fat while locking Protein
-  const applyNewCaloriesWithLockedProtein = (newCalories: number) => {
+  const applyNewCaloriesWithLockedProtein = (newCalories: number, syncRaw: boolean = true) => {
     const clamped = Math.max(800, Math.min(5000, Math.round(newCalories)));
     setTargetCalories(clamped);
+    if (syncRaw) setRawCalories(String(clamped));
 
     // Keep protein locked to current requirement
     const pCals = proteinGrams * 4;
@@ -376,11 +398,13 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     const newFat = Math.max(10, Math.round(newFatCals / 9));
 
     setCarbsGrams(newCarbs);
+    setRawCarbs(String(newCarbs));
     setFatGrams(newFat);
+    setRawFat(String(newFat));
   };
 
   const handleTargetCaloriesChange = (newCals: number) => {
-    applyNewCaloriesWithLockedProtein(newCals);
+    applyNewCaloriesWithLockedProtein(newCals, true);
   };
 
   // 7. Apply Preset Macro Ratio Split
@@ -391,9 +415,12 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     const newF = Math.max(15, Math.round((total * fRatio) / 9));
 
     setProteinGrams(newP);
+    setRawProtein(String(newP));
     setProteinPerKg(Math.round((newP / safeWeight) * 10) / 10);
     setCarbsGrams(newC);
+    setRawCarbs(String(newC));
     setFatGrams(newF);
+    setRawFat(String(newF));
 
     triggerHaptic(20);
     onToast(`สัดส่วน ${splitName}: โปรตีน ${newP}g • คาร์บ ${newC}g • ไขมัน ${newF}g`);
@@ -467,10 +494,14 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
       setPlan(result);
 
       setTargetCalories(result.dailyCalories);
+      setRawCalories(String(result.dailyCalories));
       setProteinGrams(result.proteinGrams);
+      setRawProtein(String(result.proteinGrams));
       setProteinPerKg(result.proteinPerKg);
       setCarbsGrams(result.carbsGrams);
+      setRawCarbs(String(result.carbsGrams));
       setFatGrams(result.fatGrams);
+      setRawFat(String(result.fatGrams));
       setSugarGrams(result.sugarGrams);
       setSodiumMg(result.sodiumMg);
 
@@ -518,10 +549,14 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     setPlan(basePlan);
 
     setTargetCalories(basePlan.dailyCalories);
+    setRawCalories(String(basePlan.dailyCalories));
     setProteinGrams(basePlan.proteinGrams);
+    setRawProtein(String(basePlan.proteinGrams));
     setProteinPerKg(basePlan.proteinPerKg);
     setCarbsGrams(basePlan.carbsGrams);
+    setRawCarbs(String(basePlan.carbsGrams));
     setFatGrams(basePlan.fatGrams);
+    setRawFat(String(basePlan.fatGrams));
     setSugarGrams(basePlan.sugarGrams);
     setSodiumMg(basePlan.sodiumMg);
 
@@ -546,38 +581,27 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   return (
     <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-neutral-100 space-y-3.5 w-full max-w-full overflow-hidden">
       
-      {/* 1. COMPACT HEADER - Designed to NEVER squish or break vertically */}
+      {/* 1. COMPACT HEADER - Full horizontal width, no vertical breaking */}
       <div 
         onClick={onToggleExpand}
-        className={`flex items-center justify-between gap-2 sm:gap-3 ${isCardExpanded ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+        className={`flex items-center justify-between gap-2.5 sm:gap-4 ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
       >
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
             <Sparkles size={16} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors truncate">
-                AI คำนวณโปรตีน & สารอาหาร
-              </h2>
-              <span className="hidden xs:inline-block px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-800 text-[9px] font-black shrink-0">
-                2-Way Calorie & Macro
-              </span>
-            </div>
-            <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
-              ปรับเป้าหมายแคลอรี่และสารอาหาร คำนวณอัตโนมัติ
+            <h2 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors">
+              AI คำนวณโปรตีน & สารอาหารเฉพาะบุคคล
+            </h2>
+            <p className="text-[11px] sm:text-xs text-neutral-500 font-medium mt-0.5 leading-normal">
+              ปรับระดับ Deficit, โปรตีน, คาร์บ, ไขมัน คำนวณแคลอรี่เรียลไทม์ และเกลี่ยสารอาหารอัตโนมัติ
             </p>
           </div>
         </div>
 
-        {/* Header Right: Summary Pill & Chevron */}
+        {/* Header Right: Chevron Only (maximizing horizontal room for title & subtitle) */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-lg sm:rounded-xl px-2 py-1 text-[11px] sm:text-xs">
-            <span className="font-black text-orange-700">{computedTotalCals.toLocaleString()} kcal</span>
-            <span className="text-orange-300">•</span>
-            <span className="font-bold text-blue-700">P {proteinGrams}g</span>
-          </div>
-
           {onToggleExpand && (
             <button
               type="button"
@@ -585,10 +609,10 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                 e.stopPropagation();
                 onToggleExpand();
               }}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
+              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
               title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
             >
-              {isCardExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           )}
         </div>
@@ -600,12 +624,6 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
           {/* 2. COMPACT GOAL & DEFICIT CONTROLS (UNIFIED 1-PANEL) */}
           <div className="bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-neutral-50 rounded-xl sm:rounded-2xl p-3 border border-orange-200/80 space-y-2.5">
             <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-neutral-700">
-                <Scale size={13} className="text-orange-500 shrink-0" />
-                <span>นน. {safeWeight} kg</span>
-                <span className="text-neutral-300">•</span>
-                <span>TDEE: <b className="text-neutral-900">{tdee.toLocaleString()}</b> kcal</span>
-              </div>
               <div className="flex items-center gap-1.5">
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${
                   isDeficit 
@@ -616,7 +634,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                 }`}>
                   {isDeficit ? `Deficit ${calorieDiffFromTdee} kcal` : isSurplus ? `Surplus +${calorieDiffFromTdee} kcal` : 'สมดุล TDEE'}
                 </span>
-                <span className="text-[10px] text-neutral-500 font-bold hidden sm:inline">
+                <span className="text-[10px] text-neutral-500 font-bold">
                   {calorieDiffFromTdee < 0 
                     ? `~${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./ด.` 
                     : calorieDiffFromTdee > 0 
@@ -742,12 +760,24 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                   <div className="relative flex-1">
                     <input
                       type="number"
-                      step="50"
+                      step="10"
                       min="800"
                       max="5000"
                       inputMode="numeric"
-                      value={targetCalories}
-                      onChange={(e) => handleTargetCaloriesChange(parseInt(e.target.value, 10) || 0)}
+                      value={rawCalories}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRawCalories(val);
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 500 && num <= 10000) {
+                          applyNewCaloriesWithLockedProtein(num, false);
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(rawCalories, 10);
+                        const clamped = isNaN(num) || num < 800 ? 800 : Math.min(5000, num);
+                        applyNewCaloriesWithLockedProtein(clamped, true);
+                      }}
                       className="w-full bg-white border border-orange-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
                     />
                   </div>
@@ -796,8 +826,20 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                       min="20"
                       max="400"
                       inputMode="numeric"
-                      value={proteinGrams}
-                      onChange={(e) => handleProteinGramsChange(parseInt(e.target.value, 10) || 0)}
+                      value={rawProtein}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRawProtein(val);
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 10 && num <= 600) {
+                          handleProteinGramsChange(num, false);
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(rawProtein, 10);
+                        const clamped = isNaN(num) || num < 20 ? 20 : Math.min(400, num);
+                        handleProteinGramsChange(clamped, true);
+                      }}
                       className="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-blue-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all"
                     />
                   </div>
@@ -863,12 +905,24 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                   <div className="relative flex-1">
                     <input
                       type="number"
-                      step="5"
+                      step="1"
                       min="10"
                       max="800"
                       inputMode="numeric"
-                      value={carbsGrams}
-                      onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10) || 0)}
+                      value={rawCarbs}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRawCarbs(val);
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 0 && num <= 1000) {
+                          handleCarbsChange(num, false);
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(rawCarbs, 10);
+                        const clamped = isNaN(num) || num < 10 ? 10 : Math.min(800, num);
+                        handleCarbsChange(clamped, true);
+                      }}
                       className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-amber-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
                     />
                   </div>
@@ -913,12 +967,24 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                   <div className="relative flex-1">
                     <input
                       type="number"
-                      step="5"
+                      step="1"
                       min="10"
                       max="300"
                       inputMode="numeric"
-                      value={fatGrams}
-                      onChange={(e) => handleFatChange(parseInt(e.target.value, 10) || 0)}
+                      value={rawFat}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRawFat(val);
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 0 && num <= 500) {
+                          handleFatChange(num, false);
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(rawFat, 10);
+                        const clamped = isNaN(num) || num < 10 ? 10 : Math.min(300, num);
+                        handleFatChange(clamped, true);
+                      }}
                       className="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all"
                     />
                   </div>
