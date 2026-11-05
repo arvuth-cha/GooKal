@@ -437,7 +437,13 @@ export default function App() {
         persistHistorySafely(finalHistory, [], userToSync.id);
 
         if (result.data.profile && Object.keys(result.data.profile).length > 0) {
-          finalProfile = { ...userProfile, ...result.data.profile };
+          finalProfile = {
+            ...userProfile,
+            ...result.data.profile,
+            targetCalories: userProfile.targetCalories ?? result.data.profile.targetCalories,
+            customMacros: userProfile.customMacros ?? result.data.profile.customMacros,
+            proteinPerKg: userProfile.proteinPerKg ?? result.data.profile.proteinPerKg,
+          };
           setUserProfile(finalProfile);
           try {
             localStorage.setItem(profileKey, JSON.stringify(finalProfile));
@@ -668,7 +674,14 @@ export default function App() {
 
             if (serverData.profile && Object.keys(serverData.profile).length > 0) {
               setUserProfile(prev => {
-                const mergedProfile = { ...prev, ...serverData.profile };
+                const mergedProfile = {
+                  ...prev,
+                  ...serverData.profile,
+                  // Keep local targetCalories & customMacros if they exist (user-set)
+                  targetCalories: prev.targetCalories ?? serverData.profile.targetCalories,
+                  customMacros: prev.customMacros ?? serverData.profile.customMacros,
+                  proteinPerKg: prev.proteinPerKg ?? serverData.profile.proteinPerKg,
+                };
                 try {
                   localStorage.setItem(profileKey, JSON.stringify(mergedProfile));
                   localStorage.setItem('kalguru_profile', JSON.stringify(mergedProfile));
@@ -4338,7 +4351,6 @@ export default function App() {
                           setUserProfile(updated);
                           saveProfile(updated);
                         }} 
-                        onBlur={() => saveProfile(userProfile, true)}
                         className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                     </div>
                     <div className="flex gap-4">
@@ -4350,7 +4362,6 @@ export default function App() {
                             setUserProfile(updated);
                             saveProfile(updated);
                           }} 
-                          onBlur={() => saveProfile(userProfile, true)}
                           className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                       </div>
                       <div className="flex-1">
@@ -4361,7 +4372,6 @@ export default function App() {
                             setUserProfile(updated);
                             saveProfile(updated);
                           }} 
-                          onBlur={() => saveProfile(userProfile, true)}
                           className="w-full bg-orange-50/50 border border-orange-200 rounded-xl px-4 py-2.5 text-sm font-bold text-orange-700 focus:outline-none focus:border-orange-500" />
                       </div>
                     </div>
@@ -4373,7 +4383,6 @@ export default function App() {
                           setUserProfile(updated);
                           saveProfile(updated);
                         }} 
-                        onBlur={() => saveProfile(userProfile, true)}
                         className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500" />
                     </div>
                     <div>

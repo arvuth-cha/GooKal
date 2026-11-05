@@ -864,7 +864,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                       inputMode="decimal"
                       value={proteinPerKg}
                       onChange={(e) => handleProteinPerKgChange(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl px-3 py-2 text-center text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl pl-3 pr-16 py-2 text-left text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-blue-500 pointer-events-none">
                       g/kg
@@ -945,7 +945,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                       inputMode="numeric"
                       value={proteinGrams}
                       onChange={(e) => handleProteinGramsChange(parseInt(e.target.value, 10) || 0)}
-                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl px-3 py-2 text-center text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-blue-50/50 border border-blue-300 rounded-xl pl-3 pr-16 py-2 text-left text-lg font-black text-blue-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-blue-500 pointer-events-none">
                       กรัม/วัน
@@ -1025,7 +1025,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                     inputMode="numeric"
                     value={carbsGrams}
                     onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-amber-50/50 border border-amber-300 rounded-xl px-3 py-2 text-center text-lg font-black text-amber-900 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+                    className="w-full bg-amber-50/50 border border-amber-300 rounded-xl pl-3 pr-14 py-2 text-left text-lg font-black text-amber-900 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-amber-500 pointer-events-none">
                     กรัม
@@ -1123,7 +1123,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                     inputMode="numeric"
                     value={fatGrams}
                     onChange={(e) => handleFatChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-emerald-50/50 border border-emerald-300 rounded-xl px-3 py-2 text-center text-lg font-black text-emerald-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full bg-emerald-50/50 border border-emerald-300 rounded-xl pl-3 pr-14 py-2 text-left text-lg font-black text-emerald-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-500 pointer-events-none">
                     กรัม
@@ -1227,7 +1227,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
                     inputMode="numeric"
                     value={targetCalories}
                     onChange={(e) => handleTargetCaloriesChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-white border border-orange-300 rounded-xl px-3 py-2 text-center text-lg font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition-all"
+                    className="w-full bg-white border border-orange-300 rounded-xl pl-3 pr-20 py-2 text-left text-lg font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-orange-400 pointer-events-none">
                     kcal/วัน
