@@ -14,7 +14,7 @@ export interface ExportInsightsParams {
   sodiumGoal: number;
   weeklyData: any[];
   monthlyData: any[];
-  chartTimeframe: 'weekly' | 'monthly';
+  chartTimeframe: 'weekly' | 'monthly' | '7d' | '14d' | '30d';
   macroDistributionData: {
     name: string;
     label: string;

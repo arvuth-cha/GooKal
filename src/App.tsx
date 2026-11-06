@@ -1497,15 +1497,27 @@ export default function App() {
     return d.toISOString().split('T')[0];
   };
   const displayDate = selectedDate;
+  const [chartTimeframe, setChartTimeframe] = useState<'7d' | '14d' | '30d'>('7d');
+
   const past7Days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     return d;
   });
 
-  const [chartTimeframe, setChartTimeframe] = useState<'weekly' | 'monthly'>('weekly');
+  const past14Days = Array.from({ length: 14 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (13 - i));
+    return d;
+  });
 
-  const weeklyData = past7Days.map(date => {
+  const past30Days = Array.from({ length: 30 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    return d;
+  });
+
+  const mapHistoryToDayData = (date: Date, showDate = false) => {
     const dayHistory = (history || []).filter(item => isSameDay(new Date(item.date), date));
     const calories = dayHistory.reduce((sum, item) => sum + (item?.calories || 0), 0);
     const fatGrams = dayHistory.reduce((sum, item) => sum + (item?.fatGrams || 0), 0);
@@ -1513,7 +1525,9 @@ export default function App() {
     const carbsGrams = dayHistory.reduce((sum, item) => sum + (item?.carbsGrams || 0), 0);
     
     return {
-      name: date?.toLocaleDateString('th-TH', { weekday: 'short' }).replace('.', ''),
+      name: showDate 
+        ? `${date.getDate()}/${date.getMonth() + 1}`
+        : date?.toLocaleDateString('th-TH', { weekday: 'short' }).replace('.', ''),
       calories,
       fatCals: fatGrams * 9,
       proteinCals: proteinGrams * 4,
@@ -1521,37 +1535,11 @@ export default function App() {
       proteinGrams: proteinGrams,
       fullDate: date,
     };
-  });
+  };
 
-  const monthlyData = Array.from({ length: 4 }).map((_, i) => {
-    const dEnd = new Date();
-    dEnd.setDate(dEnd.getDate() - (3 - i) * 7);
-    const dStart = new Date(dEnd);
-    dStart.setDate(dStart.getDate() - 6);
-    
-    const weekHistory = (history || []).filter(item => {
-      const itemDate = new Date(item.date);
-      itemDate.setHours(0,0,0,0);
-      const start = new Date(dStart); start.setHours(0,0,0,0);
-      const end = new Date(dEnd); end.setHours(23,59,59,999);
-      return itemDate >= start && itemDate <= end;
-    });
-    
-    const calories = weekHistory.reduce((sum, item) => sum + (item?.calories || 0), 0);
-    const fatGrams = weekHistory.reduce((sum, item) => sum + (item?.fatGrams || 0), 0);
-    const proteinGrams = weekHistory.reduce((sum, item) => sum + (item?.proteinGrams || 0), 0);
-    const carbsGrams = weekHistory.reduce((sum, item) => sum + (item?.carbsGrams || 0), 0);
-    
-    return {
-      name: `สัปดาห์ ${i + 1}`,
-      calories: Math.round(calories / 7),
-      fatCals: Math.round((fatGrams * 9) / 7),
-      proteinCals: Math.round((proteinGrams * 4) / 7),
-      carbsCals: Math.round((carbsGrams * 4) / 7),
-      proteinGrams: Math.round(proteinGrams / 7),
-      fullDate: dStart,
-    };
-  });
+  const weeklyData = past7Days.map(d => mapHistoryToDayData(d, false));
+  const biweeklyData = past14Days.map(d => mapHistoryToDayData(d, true));
+  const monthlyData = past30Days.map(d => mapHistoryToDayData(d, true));
 
   const displayHistory = (history || []).filter(item => isSameDay(new Date(item.date), displayDate));
   const totalCaloriesDisplay = displayHistory.reduce((sum, item) => sum + (item.calories || 0), 0);
@@ -2272,7 +2260,7 @@ export default function App() {
   };
 
   // Macro calorie distribution for insights and export
-  const currentInsightDataset = chartTimeframe === 'weekly' ? weeklyData : monthlyData;
+  const currentInsightDataset = chartTimeframe === '7d' ? weeklyData : chartTimeframe === '14d' ? biweeklyData : monthlyData;
   const totalCarbsCals = currentInsightDataset.reduce((sum, item) => sum + (item.carbsCals || 0), 0);
   const totalProteinCals = currentInsightDataset.reduce((sum, item) => sum + (item.proteinCals || 0), 0);
   const totalFatCals = currentInsightDataset.reduce((sum, item) => sum + (item.fatCals || 0), 0);
@@ -4644,9 +4632,9 @@ export default function App() {
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-black text-neutral-900 tracking-tight">
-                      {(chartTimeframe === 'weekly' 
-                        ? (weeklyData.reduce((acc, curr) => acc + curr.calories, 0) / (weeklyData.filter(d => d.calories > 0).length || 1))
-                        : (monthlyData.reduce((acc, curr) => acc + curr.calories, 0) / (monthlyData.filter(d => d.calories > 0).length || 1))
+                      {(
+                        currentInsightDataset.reduce((acc, curr) => acc + curr.calories, 0) / 
+                        (currentInsightDataset.filter(d => d.calories > 0).length || 1)
                       ).toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                     </span>
                     <span className="text-sm font-bold text-neutral-500">kcal เฉลี่ยต่อวัน</span>
@@ -4671,28 +4659,34 @@ export default function App() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[11px] text-neutral-400 font-medium">แตะที่แท่งกราฟเพื่อดูเมนูของวันนั้น</p>
                 </div>
-                <div className="flex bg-neutral-100/70 p-1.5 rounded-2xl mb-6">
+                <div className="flex bg-neutral-100/70 p-1 rounded-2xl mb-6">
                   <button type="button" 
-                    onClick={() => setChartTimeframe('weekly')} 
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${chartTimeframe === 'weekly' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}
+                    onClick={() => setChartTimeframe('7d')} 
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${chartTimeframe === '7d' ? 'bg-white shadow-2xs text-orange-600 font-black' : 'text-neutral-500 hover:text-neutral-900'}`}
                   >
-                    7 วันล่าสุด
+                    7 วัน
                   </button>
                   <button type="button" 
-                    onClick={() => setChartTimeframe('monthly')} 
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${chartTimeframe === 'monthly' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}
+                    onClick={() => setChartTimeframe('14d')} 
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${chartTimeframe === '14d' ? 'bg-white shadow-2xs text-orange-600 font-black' : 'text-neutral-500 hover:text-neutral-900'}`}
                   >
-                    4 สัปดาห์
+                    14 วัน
+                  </button>
+                  <button type="button" 
+                    onClick={() => setChartTimeframe('30d')} 
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${chartTimeframe === '30d' ? 'bg-white shadow-2xs text-orange-600 font-black' : 'text-neutral-500 hover:text-neutral-900'}`}
+                  >
+                    1 เดือน
                   </button>
                 </div>
 
                 <div className="h-60 w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
-                      data={chartTimeframe === 'weekly' ? weeklyData : monthlyData} 
+                      data={currentInsightDataset} 
                       margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
                       onClick={(data: any) => {
-                        if (data && data.activePayload && data.activePayload.length > 0 && chartTimeframe === 'weekly') {
+                        if (data && data.activePayload && data.activePayload.length > 0) {
                           setSelectedDate(data.activePayload[0].payload.fullDate);
                           setActiveTab('dashboard');
                         }
@@ -4700,17 +4694,17 @@ export default function App() {
                       className="cursor-pointer"
                     >
                       <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#e5e5e5" />
-                      <XAxis dataKey="name" interval={0} 
+                      <XAxis dataKey="name" interval={chartTimeframe === '7d' ? 0 : chartTimeframe === '14d' ? 1 : 4} 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fontSize: 12, fill: '#737373', fontWeight: 'bold' }} 
-                        dy={10} 
+                        tick={{ fontSize: 11, fill: '#737373', fontWeight: 'bold' }} 
+                        dy={8} 
                       />
                       <YAxis 
                         orientation="right" 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fontSize: 12, fill: '#737373', fontWeight: 'bold' }} 
+                        tick={{ fontSize: 11, fill: '#737373', fontWeight: 'bold' }} 
                         dx={15}
                         tickCount={7}
                       />
@@ -4731,9 +4725,9 @@ export default function App() {
                       />
                       <ReferenceLine y={dailyGoal} stroke="#ea580c" strokeWidth={2} />
                       
-                      <Bar dataKey="fatCals" stackId="a" fill="#FBBF24" radius={[0, 0, 6, 6]} maxBarSize={24} />
-                      <Bar dataKey="proteinCals" stackId="a" fill="#3B82F6" maxBarSize={24} />
-                      <Bar dataKey="carbsCals" stackId="a" fill="#22C55E" radius={[6, 6, 0, 0]} maxBarSize={24} />
+                      <Bar dataKey="fatCals" stackId="a" fill="#FBBF24" radius={[0, 0, 6, 6]} maxBarSize={chartTimeframe === '7d' ? 24 : chartTimeframe === '14d' ? 14 : 7} />
+                      <Bar dataKey="proteinCals" stackId="a" fill="#3B82F6" maxBarSize={chartTimeframe === '7d' ? 24 : chartTimeframe === '14d' ? 14 : 7} />
+                      <Bar dataKey="carbsCals" stackId="a" fill="#22C55E" radius={[6, 6, 0, 0]} maxBarSize={chartTimeframe === '7d' ? 24 : chartTimeframe === '14d' ? 14 : 7} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -4745,7 +4739,7 @@ export default function App() {
                   <div>
                     <h3 className="font-bold text-neutral-900 text-lg tracking-tight">สัดส่วนพลังงานจากสารอาหาร</h3>
                     <p className="text-xs text-neutral-500 font-medium mt-0.5">
-                      {chartTimeframe === 'weekly' ? 'ภาพรวม 7 วันที่ผ่านมา' : 'ภาพรวม 4 สัปดาห์ที่ผ่านมา'}
+                      {chartTimeframe === '7d' ? 'ภาพรวม 7 วันที่ผ่านมา' : chartTimeframe === '14d' ? 'ภาพรวม 14 วันที่ผ่านมา' : 'ภาพรวม 1 เดือนที่ผ่านมา'}
                     </p>
                   </div>
                   <button 
@@ -4854,9 +4848,9 @@ export default function App() {
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-black text-neutral-900 tracking-tight">
-                      {(chartTimeframe === 'weekly' 
-                        ? (weeklyData.reduce((acc, curr) => acc + (curr.proteinGrams || 0), 0) / (weeklyData.filter(d => (d.proteinGrams || 0) > 0).length || 1))
-                        : (monthlyData.reduce((acc, curr) => acc + (curr.proteinGrams || 0), 0) / (monthlyData.filter(d => (d.proteinGrams || 0) > 0).length || 1))
+                      {(
+                        currentInsightDataset.reduce((acc, curr) => acc + (curr.proteinGrams || 0), 0) / 
+                        (currentInsightDataset.filter(d => (d.proteinGrams || 0) > 0).length || 1)
                       ).toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                     </span>
                     <span className="text-sm font-bold text-neutral-500">กรัมเฉลี่ยต่อวัน</span>
@@ -4866,10 +4860,10 @@ export default function App() {
                 <div className="h-60 w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
-                      data={chartTimeframe === 'weekly' ? weeklyData : monthlyData} 
+                      data={currentInsightDataset} 
                       margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
                       onClick={(data: any) => {
-                        if (data && data.activePayload && data.activePayload.length > 0 && chartTimeframe === 'weekly') {
+                        if (data && data.activePayload && data.activePayload.length > 0) {
                           setSelectedDate(data.activePayload[0].payload.fullDate);
                           setActiveTab('dashboard');
                         }
@@ -4877,11 +4871,11 @@ export default function App() {
                       className="cursor-pointer"
                     >
                       <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#e5e5e5" />
-                      <XAxis dataKey="name" interval={0} 
+                      <XAxis dataKey="name" interval={chartTimeframe === '7d' ? 0 : chartTimeframe === '14d' ? 1 : 4} 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fontSize: 12, fill: '#737373', fontWeight: 'bold' }} 
-                        dy={10} 
+                        tick={{ fontSize: 11, fill: '#737373', fontWeight: 'bold' }} 
+                        dy={8} 
                       />
                       <YAxis 
                         orientation="right" 
@@ -4902,7 +4896,7 @@ export default function App() {
                       />
                       <ReferenceLine y={proteinGoal} stroke="#3B82F6" strokeWidth={2} strokeDasharray="5 5" />
                       
-                      <Bar dataKey="proteinGrams" fill="#3B82F6" radius={[6, 6, 0, 0]} maxBarSize={24} />
+                      <Bar dataKey="proteinGrams" fill="#3B82F6" radius={[6, 6, 0, 0]} maxBarSize={chartTimeframe === '7d' ? 24 : chartTimeframe === '14d' ? 14 : 7} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
