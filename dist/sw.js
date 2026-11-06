@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gookal-cache-v4';
-const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v4';
+const CACHE_NAME = 'gookal-cache-v6';
+const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v6';
 
 // Essential static app shell assets to precache on install
 const PRECACHE_ASSETS = [
