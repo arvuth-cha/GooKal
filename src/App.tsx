@@ -41,6 +41,7 @@ import { HealthCenterDashboard } from './components/health/HealthCenterDashboard
 import { QuickHealthNutritionSuiteHub } from './components/health/QuickHealthNutritionSuiteHub';
 import { BioHackingInnovationsHub, InnovationCategory } from './components/health/BioHackingInnovationsHub';
 import { AIMacroGoalCalculatorCard } from './components/account/AIMacroGoalCalculatorCard';
+import { BiologicalProfileCard } from './components/account/BiologicalProfileCard';
 import { CustomMealItem, OfflineFoodDatabaseItem } from './types/extendedFeatures';
 import { loadInventory, InventoryItem } from './utils/foodPantryStore';
 import { roundNutrient, formatNutrientValue } from './utils/aiNutritionCalculator';
@@ -363,7 +364,23 @@ export default function App() {
       name: 'arvuth'
     };
   });
-  const [dailyGoal, setDailyGoal] = useState<number>(1861);
+  const [dailyGoal, setDailyGoal] = useState<number>(() => {
+    try {
+      const curr = getCurrentUser();
+      const scopedKey = getScopedStorageKey('kalguru_profile', curr?.id);
+      const saved = localStorage.getItem(scopedKey) || localStorage.getItem('kalguru_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.targetCalories) return parsed.targetCalories;
+        if (parsed?.customMacros) {
+          const m = parsed.customMacros;
+          const cal = Math.round((m.protein * 4) + (m.carbs * 4) + (m.fat * 9));
+          if (cal > 500) return cal;
+        }
+      }
+    } catch {}
+    return 1861;
+  });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   // Google Authentication State
@@ -4288,219 +4305,17 @@ export default function App() {
               </div>
 
               {/* 2. Biological Profile & Physical Metrics (Collapsible) */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xs border border-neutral-100 space-y-3">
-                <div 
-                  onClick={() => toggleAccountSection('biological_profile')}
-                  className={`flex items-center justify-between gap-2.5 ${accountExpandedSections.biological_profile ? 'border-b border-neutral-100 pb-2.5 sm:pb-3' : ''} cursor-pointer select-none group`}
-                >
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                      <Scale size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h2 className="text-sm sm:text-base font-bold text-neutral-900 group-hover:text-orange-600 transition-colors truncate">
-                          ข้อมูลสรีระพื้นฐาน (Biometrics)
-                        </h2>
-                        <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-neutral-100 text-neutral-600 shrink-0">
-                          {userProfile.gender === 'female' ? 'หญิง' : 'ชาย'} {userProfile.age} ปี • {userProfile.weight} kg
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 font-medium truncate mt-0.5">
-                        คำนวณอัตราเผาผลาญ BMR {bmr.toLocaleString()} • TDEE {tdee.toLocaleString()} kcal
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-50 border border-neutral-200 text-[11px] font-bold text-neutral-600">
-                      <span>BMI {bmi}</span>
-                      <span className={`text-[9px] px-1.5 py-0.2 rounded ${bmiStatus.bg} ${bmiStatus.color}`}>
-                        {bmiStatus.text}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleAccountSection('biological_profile');
-                      }}
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
-                      title={accountExpandedSections.biological_profile ? 'ยุบหมวด' : 'ขยายหมวด'}
-                    >
-                      {accountExpandedSections.biological_profile ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                {accountExpandedSections.biological_profile && (
-                  <div className="space-y-3 pt-0.5 animate-in fade-in duration-200">
-                    {/* Compact 2-Column Responsive Inputs Grid */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      {/* Gender Selector */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">เพศกำเนิด</label>
-                        <div className="grid grid-cols-2 gap-1 bg-neutral-100 p-0.5 rounded-xl border border-neutral-200">
-                          <button
-                            type="button"
-                            onClick={() => saveProfile({...userProfile, gender: 'male'}, true)}
-                            className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                              userProfile.gender === 'male' 
-                                ? 'bg-orange-500 text-white shadow-2xs' 
-                                : 'text-neutral-600 hover:text-neutral-900'
-                            }`}
-                          >
-                            <span>ชาย ♂</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => saveProfile({...userProfile, gender: 'female'}, true)}
-                            className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                              userProfile.gender === 'female' 
-                                ? 'bg-orange-500 text-white shadow-2xs' 
-                                : 'text-neutral-600 hover:text-neutral-900'
-                            }`}
-                          >
-                            <span>หญิง ♀</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Age Input */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">อายุ (ปี)</label>
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            min="10" 
-                            max="120"
-                            value={userProfile.age || 59} 
-                            onChange={(e) => {
-                              const updated = { ...userProfile, age: Number(e.target.value) };
-                              setUserProfile(updated);
-                              saveProfile(updated);
-                            }} 
-                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">ปี</span>
-                        </div>
-                      </div>
-
-                      {/* Current Weight */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">น้ำหนักปัจจุบัน</label>
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            step="0.1"
-                            min="25"
-                            max="300"
-                            value={userProfile.weight || 59} 
-                            onChange={(e) => {
-                              const updated = { ...userProfile, weight: Number(e.target.value) };
-                              setUserProfile(updated);
-                              saveProfile(updated);
-                            }} 
-                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">กก.</span>
-                        </div>
-                      </div>
-
-                      {/* Target Weight */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-orange-700 mb-1">น้ำหนักเป้าหมาย</label>
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            step="0.1"
-                            min="25"
-                            max="300"
-                            value={userProfile.targetWeight || 59} 
-                            onChange={(e) => {
-                              const updated = { ...userProfile, targetWeight: Number(e.target.value) };
-                              setUserProfile(updated);
-                              saveProfile(updated);
-                            }} 
-                            className="w-full bg-orange-50/50 border border-orange-300 hover:border-orange-400 rounded-xl pl-3 pr-8 py-2 text-xs font-black text-orange-700 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-orange-500 pointer-events-none">กก.</span>
-                        </div>
-                      </div>
-
-                      {/* Height */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">ส่วนสูง (ซม.)</label>
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            min="80"
-                            max="250"
-                            value={userProfile.height || 167} 
-                            onChange={(e) => {
-                              const updated = { ...userProfile, height: Number(e.target.value) };
-                              setUserProfile(updated);
-                              saveProfile(updated);
-                            }} 
-                            className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all" 
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-neutral-400 pointer-events-none">ซม.</span>
-                        </div>
-                      </div>
-
-                      {/* Activity Level */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">ระดับกิจกรรม</label>
-                        <select 
-                          value={userProfile.activityLevel || 1.375} 
-                          onChange={(e) => saveProfile({...userProfile, activityLevel: Number(e.target.value)}, true)}
-                          className="w-full bg-neutral-50 border border-neutral-200 hover:border-orange-300 rounded-xl px-2.5 py-2 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all cursor-pointer"
-                        >
-                          <option value={1.2}>ไม่ออกกำลังกายเลย (1.2)</option>
-                          <option value={1.375}>ออกกำลังกายเบา 1-3 วัน/สัปดาห์ (1.375)</option>
-                          <option value={1.55}>ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์ (1.55)</option>
-                          <option value={1.725}>ออกกำลังกายหนัก 6-7 วัน/สัปดาห์ (1.725)</option>
-                          <option value={1.9}>นักกีฬาฝึกซ้อมทุกวัน (1.9)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Live Metabolic Preview Strip */}
-                    <div className="bg-gradient-to-r from-neutral-50 to-orange-50/50 rounded-xl p-2.5 border border-orange-100 flex items-center justify-between text-xs flex-wrap gap-1">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <span className="text-neutral-500 text-[11px]">BMR:</span>
-                        <span className="text-neutral-900 font-black">{bmr.toLocaleString()} kcal</span>
-                        <span className="text-neutral-300">•</span>
-                        <span className="text-orange-600 text-[11px]">TDEE:</span>
-                        <span className="text-orange-700 font-black">{tdee.toLocaleString()} kcal</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px]">
-                        <span className="text-neutral-500">BMI:</span>
-                        <span className="font-bold text-neutral-800">{bmi}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${bmiStatus.bg} ${bmiStatus.color}`}>
-                          {bmiStatus.text}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Explicit Save Profile Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        saveProfile(userProfile, true);
-                        triggerHaptic([30, 20]);
-                        playSuccessChime();
-                        showToast('💾 บันทึกข้อมูลสรีระพื้นฐานเรียบร้อยแล้ว');
-                      }}
-                      className="w-full py-2.5 px-4 rounded-xl sm:rounded-2xl bg-neutral-900 hover:bg-black active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Save size={14} />
-                      <span>💾 บันทึกข้อมูลสรีระพื้นฐาน (Save Profile)</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <BiologicalProfileCard
+                userProfile={userProfile}
+                onSaveProfile={saveProfile}
+                onToast={showToast}
+                isExpanded={accountExpandedSections.biological_profile}
+                onToggleExpand={() => toggleAccountSection('biological_profile')}
+                bmr={bmr}
+                tdee={tdee}
+                bmi={bmi}
+                bmiStatus={bmiStatus}
+              />
 
               {/* 3. AI Macro & Protein Goal Calculator with Custom Overrides (Collapsible) */}
               <AIMacroGoalCalculatorCard

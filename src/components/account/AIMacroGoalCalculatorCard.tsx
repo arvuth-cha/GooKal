@@ -241,8 +241,10 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   // Raw string states for inputs to allow seamless typing and backspacing without cursor jumping
   const [rawCalories, setRawCalories] = useState<string>(() => String(targetCalories));
   const [rawProtein, setRawProtein] = useState<string>(() => String(proteinGrams));
+  const [rawProteinPerKg, setRawProteinPerKg] = useState<string>(() => String(proteinPerKg));
   const [rawCarbs, setRawCarbs] = useState<string>(() => String(carbsGrams));
   const [rawFat, setRawFat] = useState<string>(() => String(fatGrams));
+  const [rawDeficit, setRawDeficit] = useState<string>(() => String(targetCalories - tdee));
 
   // Deficit / Surplus offset relative to TDEE
   const calorieDiffFromTdee = targetCalories - tdee;
@@ -316,15 +318,17 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   const fatPct = computedTotalCals > 0 ? Math.max(0, 100 - proteinPct - carbsPct) : 0;
 
   // 1. Protein Change via g/kg
-  const handleProteinPerKgChange = (newPerKg: number) => {
+  const handleProteinPerKgChange = (newPerKg: number, syncRaw: boolean = true) => {
     const clamped = Math.max(0.6, Math.min(3.5, Math.round(newPerKg * 10) / 10));
     setProteinPerKg(clamped);
+    if (syncRaw) setRawProteinPerKg(String(clamped));
     const newGrams = Math.round(clamped * safeWeight);
     setProteinGrams(newGrams);
     setRawProtein(String(newGrams));
     const newTotalCals = (newGrams * 4) + (carbsGrams * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
     setRawCalories(String(newTotalCals));
+    setRawDeficit(String(newTotalCals - tdee));
   };
 
   // 2. Protein Change via total grams/day
@@ -334,9 +338,11 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     if (syncRaw) setRawProtein(String(clamped));
     const newPerKg = Math.round((clamped / safeWeight) * 10) / 10;
     setProteinPerKg(newPerKg);
+    setRawProteinPerKg(String(newPerKg));
     const newTotalCals = (clamped * 4) + (carbsGrams * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
     setRawCalories(String(newTotalCals));
+    setRawDeficit(String(newTotalCals - tdee));
   };
 
   // 3. Carbs Change
@@ -347,6 +353,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     const newTotalCals = (proteinGrams * 4) + (clamped * 4) + (fatGrams * 9);
     setTargetCalories(newTotalCals);
     setRawCalories(String(newTotalCals));
+    setRawDeficit(String(newTotalCals - tdee));
   };
 
   // 4. Fat Change
@@ -357,6 +364,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     const newTotalCals = (proteinGrams * 4) + (carbsGrams * 4) + (clamped * 9);
     setTargetCalories(newTotalCals);
     setRawCalories(String(newTotalCals));
+    setRawDeficit(String(newTotalCals - tdee));
   };
 
   // 5. Change Deficit / Surplus Offset directly
@@ -378,6 +386,7 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
     const clamped = Math.max(800, Math.min(5000, Math.round(newCalories)));
     setTargetCalories(clamped);
     if (syncRaw) setRawCalories(String(clamped));
+    setRawDeficit(String(clamped - tdee));
 
     // Keep protein locked to current requirement
     const pCals = proteinGrams * 4;
@@ -579,561 +588,190 @@ export const AIMacroGoalCalculatorCard: React.FC<AIMacroGoalCalculatorCardProps>
   };
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-neutral-100 space-y-3.5 w-full max-w-full overflow-hidden">
+    <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-neutral-100 space-y-3 w-full max-w-full overflow-hidden">
       
-      {/* 1. COMPACT HEADER - Full horizontal width, no vertical breaking */}
+      {/* HEADER */}
       <div 
         onClick={onToggleExpand}
-        className={`flex items-center justify-between gap-2.5 sm:gap-4 ${isCardExpanded ? 'border-b border-neutral-100 pb-3' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
+        className={`flex items-center justify-between gap-1.5 sm:gap-2 ${isCardExpanded ? 'border-b border-neutral-100 pb-2 sm:pb-2.5' : ''} ${onToggleExpand ? 'cursor-pointer select-none group' : ''}`}
       >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-            <Sparkles size={16} />
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+            <Sparkles size={13} />
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight group-hover:text-orange-600 transition-colors">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <h2 className="text-xs sm:text-sm font-black text-neutral-900 group-hover:text-orange-600 transition-colors whitespace-nowrap tracking-tight">
               AI คำนวณโปรตีน & สารอาหารเฉพาะบุคคล
             </h2>
-            <p className="text-[11px] sm:text-xs text-neutral-500 font-medium mt-0.5 leading-normal">
-              ปรับระดับ Deficit, โปรตีน, คาร์บ, ไขมัน คำนวณแคลอรี่เรียลไทม์ และเกลี่ยสารอาหารอัตโนมัติ
+            <p className="text-[10px] text-neutral-400 font-medium whitespace-nowrap truncate mt-0.5">
+              กรอกตัวเลขโดยตรง • คำนวณแคลอรี่และสารอาหารอัตโนมัติ
             </p>
           </div>
         </div>
-
-        {/* Header Right: Chevron Only (maximizing horizontal room for title & subtitle) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onToggleExpand && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpand();
-              }}
-              className="w-8 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
-              title={isCardExpanded ? 'ยุบหมวด' : 'ขยายหมวด'}
-            >
-              {isCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
-        </div>
+        {onToggleExpand && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-500 flex items-center justify-center shrink-0 cursor-pointer ml-1">
+            {isCardExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        )}
       </div>
 
       {isCardExpanded && (
-        <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-200">
+        <div className="space-y-2.5 animate-in fade-in duration-200">
 
-          {/* 2. COMPACT GOAL & DEFICIT CONTROLS (UNIFIED 1-PANEL) */}
-          <div className="bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-neutral-50 rounded-xl sm:rounded-2xl p-3 border border-orange-200/80 space-y-2.5">
-            <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${
-                  isDeficit 
-                    ? 'bg-rose-100 text-rose-800 border-rose-200' 
-                    : isSurplus 
-                      ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                      : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                }`}>
-                  {isDeficit ? `Deficit ${calorieDiffFromTdee} kcal` : isSurplus ? `Surplus +${calorieDiffFromTdee} kcal` : 'สมดุล TDEE'}
-                </span>
-                <span className="text-[10px] text-neutral-500 font-bold">
-                  {calorieDiffFromTdee < 0 
-                    ? `~${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./ด.` 
-                    : calorieDiffFromTdee > 0 
-                      ? `+${(Math.abs(calorieDiffFromTdee) * 30 / 7700).toFixed(1)} กก./ด.` 
-                      : 'คงที่'}
-                </span>
-              </div>
+          {/* MACRO SUMMARY BAR */}
+          <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap">
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${isDeficit ? 'bg-rose-50 text-rose-700 border-rose-200' : isSurplus ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+              {isDeficit ? `Deficit ${calorieDiffFromTdee}` : isSurplus ? `Surplus +${calorieDiffFromTdee}` : 'สมดุล'} kcal
+            </span>
+            <span className="text-blue-600">P{proteinPct}%</span>
+            <span className="text-amber-600">C{carbsPct}%</span>
+            <span className="text-emerald-600">F{fatPct}%</span>
+            <span className="ml-auto text-orange-600 font-black">{computedTotalCals.toLocaleString()} kcal</span>
+          </div>
+
+          {/* STACKED BAR */}
+          <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden flex">
+            <div style={{ width: `${proteinPct}%` }} className="bg-blue-500 h-full transition-all duration-300" />
+            <div style={{ width: `${carbsPct}%` }} className="bg-amber-500 h-full transition-all duration-300" />
+            <div style={{ width: `${fatPct}%` }} className="bg-emerald-500 h-full transition-all duration-300" />
+          </div>
+
+          {/* NUMERIC-ONLY INPUT ROWS — each is a single horizontal row */}
+          <div className="space-y-1.5">
+            {/* 🎯 Target Calories */}
+            <div className="flex items-center gap-2 bg-orange-50/60 rounded-xl px-2.5 py-1.5 border border-orange-200/60">
+              <span className="text-base shrink-0">🎯</span>
+              <span className="text-xs font-bold text-neutral-700 min-w-[50px] shrink-0">แคลอรี่</span>
+              <input type="number" inputMode="numeric" step="10" min="800" max="5000"
+                value={rawCalories}
+                onChange={(e) => { setRawCalories(e.target.value); const n = parseInt(e.target.value, 10); if (!isNaN(n) && n >= 500) applyNewCaloriesWithLockedProtein(n, false); }}
+                onBlur={() => { const n = parseInt(rawCalories, 10); applyNewCaloriesWithLockedProtein(isNaN(n) || n < 800 ? 800 : Math.min(5000, n), true); }}
+                className="flex-1 min-w-0 bg-white border border-orange-300 rounded-lg px-2 py-1 text-xs font-black text-orange-600 text-center outline-none focus:ring-1 focus:ring-orange-400"
+              />
+              <span className="text-[11px] font-bold text-orange-500 shrink-0">kcal</span>
             </div>
 
-            {/* 2 Compact Dropdown Selectors */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-[11px] font-bold text-neutral-700 block mb-1 flex items-center gap-1">
-                  <Target size={12} className="text-orange-500" />
-                  <span>เป้าหมายสุขภาพตามประเภทรูปร่าง</span>
-                </label>
-                <select
-                  value={selectedGoal}
-                  onChange={(e) => {
-                    const match = GOAL_OPTIONS.find(o => o.id === e.target.value);
-                    if (match) handleSelectGoalPreset(match);
-                  }}
-                  className="w-full bg-white border border-neutral-300 hover:border-orange-400 rounded-xl px-2.5 py-1.5 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 shadow-2xs transition-all cursor-pointer"
-                >
-                  {GOAL_OPTIONS.map(opt => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label} (P {opt.recommendedProteinPerKg} g/kg)
-                    </option>
-                  ))}
-                </select>
+            {/* ⚡ Deficit from TDEE */}
+            <div className="flex items-center gap-2 bg-neutral-50 rounded-xl px-2.5 py-1.5 border border-neutral-200">
+              <span className="text-base shrink-0">⚡</span>
+              <div className="min-w-[50px] shrink-0 flex flex-col leading-tight">
+                <span className="text-xs font-bold text-neutral-700">Deficit</span>
+                <span className="text-[8px] text-neutral-400">จาก TDEE</span>
               </div>
+              <input type="number" inputMode="numeric" step="50" min="-1500" max="1500"
+                value={rawDeficit}
+                onChange={(e) => {
+                  setRawDeficit(e.target.value);
+                  const n = parseInt(e.target.value, 10);
+                  if (!isNaN(n) && n >= -1500 && n <= 1500) {
+                    const newCals = tdee + n;
+                    if (newCals >= 800 && newCals <= 5000) applyNewCaloriesWithLockedProtein(newCals, true);
+                  }
+                }}
+                onBlur={() => {
+                  const n = parseInt(rawDeficit, 10);
+                  const val = isNaN(n) ? (targetCalories - tdee) : Math.max(-1500, Math.min(1500, n));
+                  setRawDeficit(String(val));
+                  applyNewCaloriesWithLockedProtein(Math.max(800, Math.min(5000, tdee + val)), true);
+                }}
+                className="flex-1 min-w-0 bg-white border border-neutral-300 rounded-lg px-2 py-1 text-xs font-black text-neutral-700 text-center outline-none focus:ring-1 focus:ring-neutral-400"
+              />
+              <span className="text-[11px] font-bold text-neutral-400 shrink-0">kcal</span>
+            </div>
 
-              <div>
-                <label className="text-[11px] font-bold text-neutral-700 block mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <Flame size={12} className="text-orange-500" />
-                    <span>เลือกระดับ Calorie Deficit / Surplus</span>
-                  </span>
-                  <span className="text-[10px] text-orange-600 font-bold">
-                    {(tdee + (DEFICIT_PRESETS.find(p => Math.abs(calorieDiffFromTdee - p.offset) <= 25)?.offset || 0)).toLocaleString()} kcal
-                  </span>
-                </label>
-                <div className="flex items-center gap-1">
-                  <select
-                    value={
-                      DEFICIT_PRESETS.find(p => Math.abs(calorieDiffFromTdee - p.offset) <= 25)?.id || 'standard_deficit'
-                    }
+            {/* 🥩 Protein (Grams + g/kg in one row) */}
+            <div className="flex items-center gap-2 bg-blue-50/60 rounded-xl px-2.5 py-1.5 border border-blue-200/60">
+              <span className="text-base shrink-0">🥩</span>
+              <span className="text-xs font-bold text-neutral-700 min-w-[50px] shrink-0">โปรตีน</span>
+              <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                <div className="relative flex-1 min-w-0">
+                  <input type="number" inputMode="numeric" step="1" min="20" max="400"
+                    value={rawProtein}
+                    onChange={(e) => { setRawProtein(e.target.value); const n = parseInt(e.target.value, 10); if (!isNaN(n) && n >= 10) handleProteinGramsChange(n, false); }}
+                    onBlur={() => { const n = parseInt(rawProtein, 10); handleProteinGramsChange(isNaN(n) || n < 20 ? 20 : Math.min(400, n), true); }}
+                    className="w-full bg-white border border-blue-300 rounded-lg pl-1.5 pr-5 py-1 text-xs font-black text-blue-700 text-center outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-400 pointer-events-none">g</span>
+                </div>
+                <div className="relative w-20 shrink-0">
+                  <input type="number" inputMode="decimal" step="0.1" min="0.6" max="3.5"
+                    value={rawProteinPerKg}
                     onChange={(e) => {
-                      const match = DEFICIT_PRESETS.find(p => p.id === e.target.value);
-                      if (match) handleSelectDeficitPreset(match);
+                      setRawProteinPerKg(e.target.value);
+                      const n = parseFloat(e.target.value);
+                      if (!isNaN(n) && n >= 0.5 && n <= 4) handleProteinPerKgChange(n, false);
                     }}
-                    className="flex-1 bg-white border border-neutral-300 hover:border-orange-400 rounded-xl px-2.5 py-1.5 text-xs font-bold text-neutral-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 shadow-2xs transition-all cursor-pointer"
-                  >
-                    {DEFICIT_PRESETS.map(preset => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.icon} {preset.label} ({preset.badge})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustDeficitStep(-50)}
-                    className="w-8 h-8 rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:text-orange-600 hover:border-orange-300 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="ลดพลังงาน (-50 kcal)"
-                  >
-                    <Minus size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustDeficitStep(50)}
-                    className="w-8 h-8 rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:text-orange-600 hover:border-orange-300 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="เพิ่มพลังงาน (+50 kcal)"
-                  >
-                    <Plus size={13} />
-                  </button>
+                    onBlur={() => {
+                      const n = parseFloat(rawProteinPerKg);
+                      handleProteinPerKgChange(isNaN(n) || n < 0.6 ? 0.6 : Math.min(3.5, n), true);
+                    }}
+                    className="w-full bg-white border border-blue-300 rounded-lg pl-1 pr-6 py-1 text-xs font-black text-blue-700 text-center outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                  <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] font-bold text-blue-400 pointer-events-none">g/kg</span>
                 </div>
               </div>
+            </div>
+
+            {/* 🍞 Carbs */}
+            <div className="flex items-center gap-2 bg-amber-50/60 rounded-xl px-2.5 py-1.5 border border-amber-200/60">
+              <span className="text-base shrink-0">🍞</span>
+              <span className="text-xs font-bold text-neutral-700 min-w-[50px] shrink-0">คาร์บ</span>
+              <input type="number" inputMode="numeric" step="1" min="10" max="800"
+                value={rawCarbs}
+                onChange={(e) => { setRawCarbs(e.target.value); const n = parseInt(e.target.value, 10); if (!isNaN(n) && n >= 0) handleCarbsChange(n, false); }}
+                onBlur={() => { const n = parseInt(rawCarbs, 10); handleCarbsChange(isNaN(n) || n < 10 ? 10 : Math.min(800, n), true); }}
+                className="flex-1 min-w-0 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-black text-amber-700 text-center outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <span className="text-[11px] font-bold text-amber-500 shrink-0">g</span>
+              <span className="text-[10px] font-bold text-amber-400 shrink-0">({carbsCals} kcal)</span>
+            </div>
+
+            {/* 🥑 Fat */}
+            <div className="flex items-center gap-2 bg-emerald-50/60 rounded-xl px-2.5 py-1.5 border border-emerald-200/60">
+              <span className="text-base shrink-0">🥑</span>
+              <span className="text-xs font-bold text-neutral-700 min-w-[50px] shrink-0">ไขมัน</span>
+              <input type="number" inputMode="numeric" step="1" min="10" max="300"
+                value={rawFat}
+                onChange={(e) => { setRawFat(e.target.value); const n = parseInt(e.target.value, 10); if (!isNaN(n) && n >= 0) handleFatChange(n, false); }}
+                onBlur={() => { const n = parseInt(rawFat, 10); handleFatChange(isNaN(n) || n < 10 ? 10 : Math.min(300, n), true); }}
+                className="flex-1 min-w-0 bg-white border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-emerald-700 text-center outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+              <span className="text-[11px] font-bold text-emerald-500 shrink-0">g</span>
+              <span className="text-[10px] font-bold text-emerald-400 shrink-0">({fatCals} kcal)</span>
             </div>
           </div>
 
-          {/* 3. FOUR DIRECT NUMERIC INPUT CARDS (EASY TYPING, NO MULTI-STEP CONFUSION) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-neutral-800 flex items-center gap-1.5">
-                <Sliders size={14} className="text-orange-600" />
-                <span>ปรับแต่งสารอาหาร (กรอกตัวเลขได้โดยตรง)</span>
-              </span>
-              <span className="text-[10px] text-neutral-500 font-medium bg-neutral-100 px-2 py-0.5 rounded-md">
-                คำนวณสองทิศทาง 4P + 4C + 9F
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-
-              {/* CARD 1: 🎯 TARGET CALORIES */}
-              <div className="bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-white rounded-xl p-3 border-2 border-orange-300 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">🎯</span>
-                    <div>
-                      <span className="text-xs font-black text-orange-950">เป้าหมายแคลอรี่รวม</span>
-                      <span className="text-[10px] text-orange-700/80 block leading-tight">
-                        {computedTotalCals.toLocaleString()} kcal/วัน
-                      </span>
-                    </div>
-                  </div>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
-                    isDeficit ? 'bg-rose-100 text-rose-800 border-rose-200' : isSurplus ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                  }`}>
-                    {isDeficit ? `${calorieDiffFromTdee}` : isSurplus ? `+${calorieDiffFromTdee}` : 'สมดุล'} kcal
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleTargetCaloriesChange(computedTotalCals - 50)}
-                    className="w-8 h-8 rounded-lg bg-white border border-orange-200 hover:bg-orange-50 text-orange-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="ลด 50 kcal"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="10"
-                      min="800"
-                      max="5000"
-                      inputMode="numeric"
-                      value={rawCalories}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRawCalories(val);
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 500 && num <= 10000) {
-                          applyNewCaloriesWithLockedProtein(num, false);
-                        }
-                      }}
-                      onBlur={() => {
-                        const num = parseInt(rawCalories, 10);
-                        const clamped = isNaN(num) || num < 800 ? 800 : Math.min(5000, num);
-                        applyNewCaloriesWithLockedProtein(clamped, true);
-                      }}
-                      className="w-full bg-white border border-orange-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-orange-600 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleTargetCaloriesChange(computedTotalCals + 50)}
-                    className="w-8 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="เพิ่ม 50 kcal"
-                  >
-                    <Plus size={14} />
-                  </button>
-                  <span className="text-xs font-bold text-orange-600 shrink-0 min-w-[28px]">kcal</span>
-                </div>
-              </div>
-
-              {/* CARD 2: 🥩 PROTEIN */}
-              <div className="bg-blue-50/60 rounded-xl p-3 border-2 border-blue-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">🥩</span>
-                    <div>
-                      <span className="text-xs font-black text-blue-950">โปรตีน (Protein)</span>
-                      <span className="text-[10px] text-blue-700/80 block leading-tight">
-                        {proteinCals} kcal • {proteinPct}% ของพลังงาน
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px] font-black text-blue-800 border border-blue-200">
-                    <span>{proteinPerKg} g/kg</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleProteinGramsChange(proteinGrams - 5)}
-                    className="w-8 h-8 rounded-lg bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="ลด 5 กรัม"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="1"
-                      min="20"
-                      max="400"
-                      inputMode="numeric"
-                      value={rawProtein}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRawProtein(val);
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 10 && num <= 600) {
-                          handleProteinGramsChange(num, false);
-                        }
-                      }}
-                      onBlur={() => {
-                        const num = parseInt(rawProtein, 10);
-                        const clamped = isNaN(num) || num < 20 ? 20 : Math.min(400, num);
-                        handleProteinGramsChange(clamped, true);
-                      }}
-                      className="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-blue-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleProteinGramsChange(proteinGrams + 5)}
-                    className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="เพิ่ม 5 กรัม"
-                  >
-                    <Plus size={14} />
-                  </button>
-                  <span className="text-xs font-bold text-blue-700 shrink-0 min-w-[28px]">กรัม</span>
-                </div>
-
-                {/* Quick g/kg buttons strip */}
-                <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500 pt-0.5">
-                  <span>เลือกความหนาแน่น:</span>
-                  <div className="flex items-center gap-1">
-                    {[1.2, 1.6, 1.8, 2.0].map(val => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => handleProteinPerKgChange(val)}
-                        className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
-                          Math.abs(proteinPerKg - val) < 0.05
-                            ? 'bg-blue-600 text-white font-black'
-                            : 'bg-white hover:bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}
-                      >
-                        {val}g
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* CARD 3: 🍞 CARBOHYDRATES */}
-              <div className="bg-amber-50/60 rounded-xl p-3 border-2 border-amber-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">🍞</span>
-                    <div>
-                      <span className="text-xs font-black text-amber-950">คาร์โบไฮเดรต (Carbs)</span>
-                      <span className="text-[10px] text-amber-700/80 block leading-tight">
-                        {carbsCals} kcal • {carbsPct}% ของพลังงาน
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">
-                    {Math.round((carbsGrams / safeWeight) * 10) / 10} g/kg
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleCarbsChange(carbsGrams - 10)}
-                    className="w-8 h-8 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="ลด 10 กรัม"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="1"
-                      min="10"
-                      max="800"
-                      inputMode="numeric"
-                      value={rawCarbs}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRawCarbs(val);
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 0 && num <= 1000) {
-                          handleCarbsChange(num, false);
-                        }
-                      }}
-                      onBlur={() => {
-                        const num = parseInt(rawCarbs, 10);
-                        const clamped = isNaN(num) || num < 10 ? 10 : Math.min(800, num);
-                        handleCarbsChange(clamped, true);
-                      }}
-                      className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-amber-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCarbsChange(carbsGrams + 10)}
-                    className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="เพิ่ม 10 กรัม"
-                  >
-                    <Plus size={14} />
-                  </button>
-                  <span className="text-xs font-bold text-amber-700 shrink-0 min-w-[28px]">กรัม</span>
-                </div>
-              </div>
-
-              {/* CARD 4: 🥑 FAT */}
-              <div className="bg-emerald-50/60 rounded-xl p-3 border-2 border-emerald-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">🥑</span>
-                    <div>
-                      <span className="text-xs font-black text-emerald-950">ไขมันดี (Fat)</span>
-                      <span className="text-[10px] text-emerald-700/80 block leading-tight">
-                        {fatCals} kcal • {fatPct}% ของพลังงาน
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
-                    {Math.round((fatGrams / safeWeight) * 10) / 10} g/kg
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleFatChange(fatGrams - 5)}
-                    className="w-8 h-8 rounded-lg bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="ลด 5 กรัม"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      step="1"
-                      min="10"
-                      max="300"
-                      inputMode="numeric"
-                      value={rawFat}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRawFat(val);
-                        const num = parseInt(val, 10);
-                        if (!isNaN(num) && num >= 0 && num <= 500) {
-                          handleFatChange(num, false);
-                        }
-                      }}
-                      onBlur={() => {
-                        const num = parseInt(rawFat, 10);
-                        const clamped = isNaN(num) || num < 10 ? 10 : Math.min(300, num);
-                        handleFatChange(clamped, true);
-                      }}
-                      className="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1.5 text-center text-base font-black text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFatChange(fatGrams + 5)}
-                    className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="เพิ่ม 5 กรัม"
-                  >
-                    <Plus size={14} />
-                  </button>
-                  <span className="text-xs font-bold text-emerald-700 shrink-0 min-w-[28px]">กรัม</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* 4. SLIM VISUAL MACRO ENERGY BAR & QUICK RATIOS */}
-          <div className="bg-neutral-50 rounded-xl p-2.5 sm:p-3 border border-neutral-200/80 space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-bold flex-wrap gap-1">
-              <span className="text-neutral-700 flex items-center gap-1.5">
-                <span className="text-blue-700 font-black">P {proteinPct}% ({proteinGrams}g)</span>
-                <span className="text-neutral-300">•</span>
-                <span className="text-amber-700 font-black">C {carbsPct}% ({carbsGrams}g)</span>
-                <span className="text-neutral-300">•</span>
-                <span className="text-emerald-700 font-black">F {fatPct}% ({fatGrams}g)</span>
-              </span>
-              <span className="text-orange-600 font-black">
-                รวม {computedTotalCals.toLocaleString()} kcal
-              </span>
-            </div>
-
-            <div className="w-full h-2.5 bg-neutral-200 rounded-full overflow-hidden flex shadow-inner">
-              <div 
-                style={{ width: `${proteinPct}%` }} 
-                className="bg-blue-600 h-full transition-all duration-300"
-                title={`โปรตีน: ${proteinGrams}g (${proteinCals} kcal)`}
-              />
-              <div 
-                style={{ width: `${carbsPct}%` }} 
-                className="bg-amber-500 h-full transition-all duration-300"
-                title={`คาร์บ: ${carbsGrams}g (${carbsCals} kcal)`}
-              />
-              <div 
-                style={{ width: `${fatPct}%` }} 
-                className="bg-emerald-500 h-full transition-all duration-300"
-                title={`ไขมัน: ${fatGrams}g (${fatCals} kcal)`}
-              />
-            </div>
-
-            {/* Quick split buttons */}
-            <div className="grid grid-cols-4 gap-1 pt-0.5">
-              {[
-                { name: 'High Protein', p: 0.35, c: 0.40, f: 0.25 },
-                { name: 'Balanced', p: 0.25, c: 0.50, f: 0.25 },
-                { name: 'Low Carb', p: 0.30, c: 0.20, f: 0.50 },
-                { name: 'High Carb', p: 0.20, c: 0.60, f: 0.20 }
-              ].map((split, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleApplyMacroSplit(split.p, split.c, split.f, split.name)}
-                  className="text-[10px] font-bold py-1 px-1 rounded-lg bg-white hover:bg-orange-50 text-neutral-600 hover:text-orange-700 border border-neutral-200 hover:border-orange-200 transition-all cursor-pointer text-center truncate"
-                >
-                  {split.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 5. COMPACT ACTION BUTTONS */}
-          <div className="flex flex-col sm:flex-row gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleSaveAndApplyGoals}
-              className="flex-1 py-2.5 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-98 text-white font-black text-xs sm:text-sm shadow-sm shadow-orange-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Save size={16} />
-              <span>💾 บันทึกเป้าหมายสารอาหาร</span>
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-2 pt-0.5">
+            <button type="button" onClick={handleSaveAndApplyGoals}
+              className="flex-1 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-[0.98] text-white font-black text-xs flex items-center justify-center gap-1 cursor-pointer">
+              <Save size={13} /><span>บันทึก</span>
             </button>
-
-            <button
-              type="button"
-              onClick={handleCalculateWithAI}
-              disabled={isCalculatingAI}
-              className="py-2.5 px-3 rounded-xl sm:rounded-2xl bg-neutral-900 hover:bg-black active:scale-98 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-60 shrink-0"
-            >
-              {isCalculatingAI ? (
-                <>
-                  <Loader2 size={14} className="animate-spin text-white" />
-                  <span>AI กำลังวิเคราะห์...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} className="text-amber-300" />
-                  <span>✨ AI คำนวณ</span>
-                </>
-              )}
+            <button type="button" onClick={handleCalculateWithAI} disabled={isCalculatingAI}
+              className="py-2 px-3 rounded-xl bg-neutral-900 hover:bg-black active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-60">
+              {isCalculatingAI ? <><Loader2 size={12} className="animate-spin" /><span>AI...</span></> : <><Sparkles size={12} className="text-amber-300" /><span>AI</span></>}
             </button>
-
-            <button
-              type="button"
-              onClick={handleResetToBaseline}
-              className="py-2.5 px-3 rounded-xl sm:rounded-2xl bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-600 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0"
-              title="รีเซ็ตเป็นค่ามาตรฐานเวชศาสตร์การกีฬา"
-            >
-              <RotateCcw size={13} />
-              <span>รีเซ็ต</span>
+            <button type="button" onClick={handleResetToBaseline}
+              className="py-2 px-3 rounded-xl bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-500 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer">
+              <RotateCcw size={12} /><span>รีเซ็ต</span>
             </button>
           </div>
 
-          {/* 6. COLLAPSIBLE AI EXPLANATION DRAWER */}
+          {/* AI EXPLANATION (collapsed by default) */}
           {plan && (
-            <div className="bg-neutral-50/80 rounded-xl p-2.5 sm:p-3 border border-neutral-200/80">
-              <button
-                type="button"
-                onClick={() => setShowExplanationDetail(!showExplanationDetail)}
-                className="w-full flex items-center justify-between text-left font-bold text-xs text-neutral-800 cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Info size={14} className="text-orange-500" />
-                  <span>หลักการเวชศาสตร์การกีฬา & เคล็ดลับโภชนาการ</span>
-                </div>
-                {showExplanationDetail ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            <div className="bg-neutral-50/80 rounded-lg p-2 border border-neutral-200/60">
+              <button type="button" onClick={() => setShowExplanationDetail(!showExplanationDetail)}
+                className="w-full flex items-center justify-between text-left font-bold text-[11px] text-neutral-600 cursor-pointer">
+                <div className="flex items-center gap-1"><Info size={12} className="text-orange-400" /><span>เคล็ดลับโภชนาการ</span></div>
+                {showExplanationDetail ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               </button>
-
               {showExplanationDetail && (
-                <div className="mt-2.5 pt-2.5 border-t border-neutral-200 text-xs text-neutral-600 space-y-2 animate-in fade-in duration-200">
-                  <p className="leading-relaxed text-neutral-700 font-medium">
-                    {userProfile.aiExplanation || plan.explanation}
-                  </p>
-
-                  <div className="space-y-1 pt-1">
-                    {((userProfile.aiKeyTips && userProfile.aiKeyTips.length > 0) ? userProfile.aiKeyTips : plan.keyTips).map((tip, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5 text-[11px] text-neutral-700">
-                        <span className="text-orange-500 font-bold shrink-0">•</span>
-                        <span>{tip}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1.5 text-[11px] text-neutral-500 font-medium border-t border-neutral-100">
-                    <span className="flex items-center gap-1 text-blue-700 font-bold">
-                      <Droplet size={11} className="text-blue-500" /> น้ำดื่ม: ~{(plan.waterMl / 1000).toFixed(1)} ลิตร/วัน
-                    </span>
-                    <span>🧂 โซเดียม &lt; 2,000 mg</span>
-                    <span>🍬 น้ำตาล &lt; 25 g</span>
-                  </div>
+                <div className="mt-2 pt-2 border-t border-neutral-200 text-[11px] text-neutral-600 space-y-1.5">
+                  <p className="leading-relaxed">{userProfile.aiExplanation || plan.explanation}</p>
+                  {((userProfile.aiKeyTips && userProfile.aiKeyTips.length > 0) ? userProfile.aiKeyTips : plan.keyTips).map((tip, idx) => (
+                    <div key={idx} className="flex items-start gap-1 text-[10px]"><span className="text-orange-400 shrink-0">•</span><span>{tip}</span></div>
+                  ))}
                 </div>
               )}
             </div>
