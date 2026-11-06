@@ -5007,9 +5007,50 @@ export default function App() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="flex-1 flex flex-col items-center justify-center text-center py-4"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 rounded-full flex items-center justify-center mb-3 relative shadow-inner shrink-0">
-                      <div className="absolute inset-0 bg-orange-400/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
-                      <Camera size={26} className="text-orange-500" strokeWidth={1.8} />
+                    {/* Premium AI Camera Lens Illustration */}
+                    <div 
+                      onClick={triggerCamera}
+                      className="relative mb-3 flex items-center justify-center group cursor-pointer select-none"
+                      title="กดเพื่อเปิดกล้องถ่ายรูปอาหาร"
+                    >
+                      {/* Ambient soft glow aura */}
+                      <div className="absolute -inset-2 bg-gradient-to-tr from-orange-400 via-amber-300 to-rose-400 rounded-3xl opacity-35 blur-md animate-pulse"></div>
+
+                      {/* Outer premium squircle container */}
+                      <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 p-[2.5px] shadow-lg shadow-orange-500/30 transition-all duration-300 group-hover:scale-105 active:scale-95">
+                        
+                        {/* Inner high-gloss backdrop */}
+                        <div className="w-full h-full rounded-[21px] bg-gradient-to-b from-white via-orange-50/90 to-amber-100 flex items-center justify-center relative overflow-hidden">
+                          {/* Diagonal lens glare sheen */}
+                          <div className="absolute -top-6 -left-6 w-16 h-16 bg-white/60 rounded-full blur-xs pointer-events-none transform rotate-12"></div>
+                          
+                          {/* Viewfinder corner guides */}
+                          <div className="absolute inset-2 pointer-events-none">
+                            <span className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-orange-400/70 rounded-tl"></span>
+                            <span className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-orange-400/70 rounded-tr"></span>
+                            <span className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-orange-400/70 rounded-bl"></span>
+                            <span className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-orange-400/70 rounded-br"></span>
+                          </div>
+
+                          {/* Optical Camera Lens */}
+                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-b from-neutral-900 via-neutral-800 to-neutral-950 p-1 flex items-center justify-center shadow-inner relative border border-orange-200/80">
+                            {/* Lens glint highlights */}
+                            <div className="absolute top-1 left-2 w-1.5 h-1.5 rounded-full bg-white/80"></div>
+                            <div className="absolute bottom-1.5 right-2 w-1 h-1 rounded-full bg-amber-400/70"></div>
+                            
+                            {/* Inner Iris aperture + icon */}
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-xs">
+                              <Camera size={13} className="text-white drop-shadow-xs" strokeWidth={2.4} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Floating AI Star Chip Badge */}
+                      <div className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-neutral-900 text-[9px] font-black tracking-wider flex items-center gap-0.5 shadow-md border-2 border-white animate-bounce" style={{ animationDuration: '2.5s' }}>
+                        <Sparkles size={9} className="text-amber-950 fill-amber-950" />
+                        <span>AI</span>
+                      </div>
                     </div>
                     <h2 className="text-lg sm:text-xl font-bold mb-1.5 text-neutral-900 tracking-tight">
                       วิเคราะห์อาหารด้วย AI

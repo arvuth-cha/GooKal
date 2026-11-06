@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gookal-cache-v7';
-const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v7';
+const CACHE_NAME = 'gookal-cache-v8';
+const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v8';
 
 // Listen for messages from client (e.g., skip waiting)
 self.addEventListener('message', (event) => {
