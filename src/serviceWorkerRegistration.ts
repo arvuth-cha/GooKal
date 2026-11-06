@@ -8,11 +8,23 @@ export function registerServiceWorker() {
   // In development mode, always unregister service worker and purge cache to prevent stale files
   const isProd = import.meta.env.PROD;
   if (isProd) {
+    // Automatically reload when a new service worker controller takes over
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
           console.log('[GooKal] ServiceWorker registered with scope:', registration.scope);
+
+          // Check for SW updates periodically
+          registration.update().catch(() => {});
 
           registration.onupdatefound = () => {
             const installingWorker = registration.installing;
@@ -21,7 +33,8 @@ export function registerServiceWorker() {
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  console.log('[GooKal] New content is available; please refresh.');
+                  console.log('[GooKal] New version detected, activating immediately...');
+                  installingWorker.postMessage({ type: 'SKIP_WAITING' });
                 } else {
                   console.log('[GooKal] Content is cached for offline use.');
                 }

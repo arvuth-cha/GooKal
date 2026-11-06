@@ -5005,16 +5005,16 @@ export default function App() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex-1 flex flex-col items-center justify-center text-center py-6"
+                    className="flex-1 flex flex-col items-center justify-center text-center py-4"
                   >
-                    <div className="w-32 h-32 bg-orange-50 rounded-full flex items-center justify-center mb-6 relative shadow-inner shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 rounded-full flex items-center justify-center mb-3 relative shadow-inner shrink-0">
                       <div className="absolute inset-0 bg-orange-400/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
-                      <Camera size={48} className="text-orange-500" strokeWidth={1.5} />
+                      <Camera size={26} className="text-orange-500" strokeWidth={1.8} />
                     </div>
-                    <h2 className="text-2xl font-bold mb-3 text-neutral-900 tracking-tight">
+                    <h2 className="text-lg sm:text-xl font-bold mb-1.5 text-neutral-900 tracking-tight">
                       วิเคราะห์อาหารด้วย AI
                     </h2>
-                    <p className="text-neutral-500 mb-8 max-w-[260px] leading-relaxed text-sm">
+                    <p className="text-neutral-500 mb-5 max-w-[260px] leading-relaxed text-xs">
                       ถ่ายรูปอาหาร หรือพิมพ์ชื่ออาหาร GooKal จะคำนวณแคลอรี่และสารอาหารให้ทันทีอย่างแม่นยำ
                     </p>
 

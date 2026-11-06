@@ -1,5 +1,12 @@
-const CACHE_NAME = 'gookal-cache-v6';
-const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v6';
+const CACHE_NAME = 'gookal-cache-v7';
+const DYNAMIC_CACHE_NAME = 'gookal-dynamic-v7';
+
+// Listen for messages from client (e.g., skip waiting)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // Essential static app shell assets to precache on install
 const PRECACHE_ASSETS = [
